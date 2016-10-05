@@ -55,9 +55,8 @@ namespace server
             {
                 if (port != null)
                 {
-                    Console.WriteLine($"ERROR: Port parameter provided is not a number.");
-                    Console.WriteLine($"Default Port Number {defaultPortNumber} will be used instead.");
-                    Console.WriteLine();
+                    Console.WriteLine("ERROR: Port parameter provided is not a integer number.");
+                    throw new Exception("ERROR: Port parameter provided is not a integer number.");
                 }
                 this.port = defaultPortNumber;
             }
@@ -66,8 +65,7 @@ namespace server
         }
 
         private bool isPortAvailable(int port)
-        {
-            
+        {   
             return true;
         }
 
@@ -75,7 +73,16 @@ namespace server
         {
             if (path != null)
             {
-                rootpath = path;
+                if (Directory.Exists(path))
+                {
+                    rootpath = path;
+                }
+                else
+                {
+                    Console.WriteLine($"The path \"{path}\" does not exist.");
+                    throw new Exception("The provided path does not exist.");
+                }
+                
             }
             else
             {
@@ -93,21 +100,8 @@ namespace server
 
         public void listen()
         {
-            
             Console.WriteLine($"Listening on port {port}...");
-            Console.WriteLine();
-
-            // Loop for listening clients
-
-            //while (true)
-            //{
-            //    // Accepting connection with new client
-            //    client = server.AcceptTcpClient();
-            //    // Handling request from client in a separate thread
-            //    //Thread thread = new Thread(new ThreadStart());
-            //    //thread.Start();
-            //    //Thread.Sleep(100);
-            //}
+            //Console.ReadLine();
         }
     }
 }
