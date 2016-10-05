@@ -1,12 +1,5 @@
 ﻿using System;
-using System.Linq;
-using System.Net;
-using System.Net.Sockets;
-using System.Net.NetworkInformation;
-using System.Threading;
 using System.IO;
-using System.Reflection;
-using System.Collections.Generic;
 
 namespace server
 {
@@ -16,8 +9,6 @@ namespace server
         string rootpath;
         const int defaultPortNumber = 80;
         const string backslash = @"\";
-        TcpListener server;
-        TcpClient client;
 
         public Server()
         {
@@ -76,16 +67,7 @@ namespace server
 
         private bool isPortAvailable(int port)
         {
-            IPGlobalProperties ipGlobalProperties = IPGlobalProperties.GetIPGlobalProperties();
-            TcpConnectionInformation[] tcpConnInfoArray = ipGlobalProperties.GetActiveTcpConnections();
-
-            foreach (TcpConnectionInformation tcpi in tcpConnInfoArray)
-            {
-                if (tcpi.LocalEndPoint.Port == port)
-                {
-                    return false;
-                }
-            }
+            
             return true;
         }
 
@@ -111,8 +93,7 @@ namespace server
 
         public void listen()
         {
-            server = new TcpListener(IPAddress.Loopback, port); // Port number in localhost
-            server.Start();
+            
             Console.WriteLine($"Listening on port {port}...");
             Console.WriteLine();
 
