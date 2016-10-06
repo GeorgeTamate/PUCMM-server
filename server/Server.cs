@@ -1,5 +1,6 @@
 ﻿using System;
 using System.IO;
+using System.Net.NetworkInformation;
 
 namespace server
 {
@@ -11,30 +12,10 @@ namespace server
         const string backslash = @"\";
 
         public Server()
-        {
-            port = defaultPortNumber;
-            rootpath = Directory.GetCurrentDirectory();
-            notifyInitReport();
-        }
+        { }
+        
 
-        public Server(int port, string path)
-        {
-            if (isPortAvailable(port))
-            {
-                this.port = port;
-            }
-            else
-            {
-                Console.WriteLine("ERROR: Port Not Available.");
-                Console.WriteLine($"Default Port Number {defaultPortNumber} will be used instead.");
-                Console.WriteLine();
-                this.port = defaultPortNumber;
-            }
-            assignRootPath(path);
-            notifyInitReport();
-        }
-
-        public Server(string port, string path)
+        public bool serverInit(string port, string path)
         {
             int portNum;
             if (int.TryParse(port, out portNum))
@@ -45,10 +26,8 @@ namespace server
                 }
                 else
                 {
-                    Console.WriteLine("ERROR: Port Not Available.");
-                    Console.WriteLine($"Default Port Number {defaultPortNumber} will be used instead.");
-                    Console.WriteLine();
-                    this.port = defaultPortNumber;
+                    Console.WriteLine($"ERROR: Port {port} Not Available.");
+                    return false;
                 }
             }
             else
@@ -56,20 +35,34 @@ namespace server
                 if (port != null)
                 {
                     Console.WriteLine("ERROR: Port parameter provided is not a integer number.");
-                    throw new Exception("ERROR: Port parameter provided is not a integer number.");
+                    return false;
                 }
                 this.port = defaultPortNumber;
             }
-            assignRootPath(path);
+            bool errorfree = true;
+            errorfree = assignRootPath(path);
+            if (!errorfree) { return false; }
             notifyInitReport();
+            return true;
         }
+        
 
         private bool isPortAvailable(int port)
-        {   
+        {
+            IPGlobalProperties ipGlobalProperties = IPGlobalProperties.GetIPGlobalProperties();
+            TcpConnectionInformation[] tcpConnInfoArray = ipGlobalProperties.GetActiveTcpConnections();
+
+            foreach (TcpConnectionInformation tcpi in tcpConnInfoArray)
+            {
+                if (tcpi.LocalEndPoint.Port == port)
+                {
+                    return false;
+                }
+            }
             return true;
         }
 
-        private void assignRootPath(string path)
+        private bool assignRootPath(string path)
         {
             if (path != null)
             {
@@ -80,14 +73,14 @@ namespace server
                 else
                 {
                     Console.WriteLine($"The path \"{path}\" does not exist.");
-                    throw new Exception("The provided path does not exist.");
+                    return false;
                 }
-                
             }
             else
             {
                 rootpath = Directory.GetCurrentDirectory();
             }
+            return true;
         }
 
         public void notifyInitReport()
@@ -98,10 +91,16 @@ namespace server
             Console.WriteLine();
         }
 
-        public void listen()
+        public bool listen()
         {
+            if (!isPortAvailable(port))
+            {
+                Console.WriteLine($"ERROR: Port {port} Not Available.");
+                return false;
+            }
             Console.WriteLine($"Listening on port {port}...");
-            //Console.ReadLine();
+            while (true){};
+            return true;
         }
     }
 }

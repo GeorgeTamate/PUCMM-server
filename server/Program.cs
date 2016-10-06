@@ -1,5 +1,4 @@
 ﻿using System;
-using System.Threading;
 
 namespace server
 {
@@ -10,9 +9,10 @@ namespace server
             Console.WriteLine();
             Console.WriteLine("Initializing Server... ");
 
+            bool errorfree;
+
             string port = null;
             string path = null;
-            
 
             if (args.Length > 1)
             {
@@ -26,24 +26,12 @@ namespace server
                 if (args[2] == "--path"){ path = args[3]; }
             }
 
-
-            Server server;
-
-            try
-            {
-                server = new Server(port, path);
-            }
-            catch
-            {
-                //Console.ReadLine();
-                return 1;
-            }
+            Server server = new Server();
+            errorfree = server.serverInit(port, path);
+            if (!errorfree) { return 1; }
             
-
-            Console.WriteLine("Starting Thread... ");
-
-            Thread thread = new Thread(new ThreadStart(server.listen));
-            thread.Start();
+            errorfree = server.listen();
+            if (!errorfree) { return 1; }
 
             return 0;
         }
