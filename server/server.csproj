@@ -42,6 +42,8 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="ClientState.cs" />
+    <Compile Include="HttpClient.cs" />
     <Compile Include="HttpServer.cs" />
     <Compile Include="HttpServerState.cs" />
     <Compile Include="Program.cs" />
