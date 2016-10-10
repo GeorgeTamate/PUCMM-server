@@ -10,9 +10,10 @@ namespace server
             Console.WriteLine("Initializing Server... ");
 
             bool errorfree;
-
             string port = null;
             string path = null;
+
+
 
             if (args.Length > 1)
             {

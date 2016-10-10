@@ -1,6 +1,7 @@
 ﻿using System;
 using System.IO;
 using System.Net.NetworkInformation;
+using System.Diagnostics;
 
 namespace server
 {
@@ -98,8 +99,21 @@ namespace server
                 Console.WriteLine($"ERROR: Port {port} Not Available.");
                 return false;
             }
+
+            Stopwatch stopWatch = new Stopwatch();
+            stopWatch.Start();
+            string cmd;
+
             Console.WriteLine($"Listening on port {port}...");
-            while (true){};
+            while (true)
+            {
+                cmd = Console.ReadLine();
+                if (cmd.ToLower() == "uptime")
+                {
+                    Console.WriteLine(stopWatch.Elapsed);
+                }
+            };
+            stopWatch.Stop();
             return true;
         }
     }
