@@ -106,18 +106,9 @@ namespace server
 
             Console.WriteLine($"Listening on port {port}...");
 
-
-
-
-
-
-
-
-
-
-
-
-
+            HttpServer httpServer = new HttpServer();
+            httpServer.Start();
+            httpServer.Stop();
 
             while (true)
             {
