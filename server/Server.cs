@@ -9,7 +9,7 @@ namespace server
     {
         int port;
         string rootpath;
-        const int defaultPortNumber = 80;
+        const int defaultPortNumber = 8081;
         const string backslash = @"\";
 
         public Server()
@@ -105,6 +105,11 @@ namespace server
             string cmd;
 
             Console.WriteLine($"Listening on port {port}...");
+
+            HttpServer httpServer = new HttpServer();
+            httpServer.Start();
+            httpServer.Stop();
+
             while (true)
             {
                 cmd = Console.ReadLine();
