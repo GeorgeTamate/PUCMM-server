@@ -1,16 +1,11 @@
 ﻿
 namespace server
 {
-    public class ClientState
-    {
-        public enum State
-        {
-            ReadingProlog,
-            ReadingHeaders,
-            ReadingContent,
-            WritingHeaders,
-            WritingContent,
-            Closed
-        }
-    }
+    public enum HttpClientState {
+        ReadingProlog,
+        ReadingHeaders,
+        ReadingContent,
+        WritingHeaders,
+        WritingContent,
+        Closed }
 }

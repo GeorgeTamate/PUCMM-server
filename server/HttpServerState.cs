@@ -1,12 +1,9 @@
 ﻿
 namespace server
 {
-    public class HttpServerState
-    {
-        public enum State {
-            Starting,
-            Started,
-            Stopping,
-            Stopped };
-    }
+    public enum HttpServerState {
+        Starting,
+        Started,
+        Stopping,
+        Stopped };
 }
