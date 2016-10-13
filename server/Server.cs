@@ -118,8 +118,8 @@ namespace server
                     Console.WriteLine(stopWatch.Elapsed);
                 }
             };
-            stopWatch.Stop();
-            return true;
+            //stopWatch.Stop();
+            //return true;
         }
     }
 }
