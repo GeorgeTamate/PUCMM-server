@@ -115,11 +115,13 @@ namespace server
                 cmd = Console.ReadLine();
                 if (cmd.ToLower() == "uptime")
                 {
-                    Console.WriteLine(stopWatch.Elapsed);
+                    Console.WriteLine("Time since Server started: " + stopWatch.Elapsed);
                 }
+                else if (cmd.ToLower() == "break")
+                { break; }
             };
-            //stopWatch.Stop();
-            //return true;
+            stopWatch.Stop();
+            return true;
         }
     }
 }
