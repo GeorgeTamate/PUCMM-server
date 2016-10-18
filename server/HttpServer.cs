@@ -55,6 +55,7 @@ namespace server
                 _listener.Start();
                 EndPoint = (IPEndPoint)_listener.LocalEndpoint;
                 State = HttpServerState.Started;
+                BeginAcceptTcpClient();
             }
             catch
             {
@@ -105,7 +106,7 @@ namespace server
             var listener = _listener;
             if(listener == null)
             { throw new NullReferenceException("Local listener from HttpServer.BeginAcceptTcpClient() is null."); }
-            listener.BeginAcceptTcpClient(AcceptTcpClientCallback, listener); //OK?
+            listener.BeginAcceptTcpClient(AcceptTcpClientCallback, listener);
         }
 
         private void AcceptTcpClientCallback(IAsyncResult iar)
@@ -114,18 +115,15 @@ namespace server
             {
                 var listener = _listener;
                 if (listener == null) { return; }
-                var tcpClient = listener.EndAcceptTcpClient(iar); //OK?
-                if (State == HttpServerState.Stopped) { tcpClient.Close(); } //OK?
-                var client = new HttpClient(this, tcpClient); //OK?
+                var tcpClient = listener.EndAcceptTcpClient(iar);
+                if (State == HttpServerState.Stopped) { tcpClient.Close(); }
+                var client = new HttpClient(this, tcpClient);
                 RegisterClient(client);
                 client.BeginRequest();
-                listener.BeginAcceptTcpClient(AcceptTcpClientCallback, listener); //OK?
+                listener.BeginAcceptTcpClient(AcceptTcpClientCallback, listener);
             }
             catch (ObjectDisposedException) { }
-            catch (Exception ex)
-            {
-                Console.WriteLine(ex.ToString());
-            }
+            catch (Exception ex) { Console.WriteLine(ex.ToString()); }
         }
 
         private void RegisterClient(HttpClient client)
@@ -134,7 +132,7 @@ namespace server
             { throw new ArgumentNullException("HttpClient argument provided is null."); }
             lock (_syncLock)
             {
-                _clients.Add(client, false); // fix bool value
+                _clients.Add(client, false);
                 _clientsChangedEvent.Set();
             }
         }
