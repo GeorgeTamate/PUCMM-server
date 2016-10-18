@@ -18,16 +18,20 @@ namespace server
 
         public HttpClient(HttpServer httpServer, TcpClient tcpClient)
         {
-            if (httpServer != null) { Server = httpServer; }
-            else { throw new ArgumentNullException("HttpServer argument provided is null."); }
+            if (httpServer == null)
+            { throw new ArgumentNullException("HttpServer argument provided is null."); }
+            Server = httpServer;
 
-            if (tcpClient != null) { TcpClient = tcpClient; }
-            else { throw new ArgumentNullException("TcpClient argument provided is null."); }
+            if (tcpClient == null)
+            { throw new ArgumentNullException("TcpClient argument provided is null."); }
+            TcpClient = tcpClient;
         }
 
 
         public void BeginRequest()
-        { }
+        {
+            Console.WriteLine("HttpClient.BeginRequest() method has been called.");
+        }
 
         public void Dispose()
         {
