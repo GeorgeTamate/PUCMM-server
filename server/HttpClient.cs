@@ -1,8 +1,10 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Collections.Specialized;
+using System.Diagnostics;
 using System.IO;
 using System.Net.Sockets;
+using System.Text;
 using System.Text.RegularExpressions;
 
 namespace server
@@ -16,7 +18,7 @@ namespace server
         private readonly byte[] _writeBuffer;
         private NetworkStream _stream;
         private MemoryStream _writeStream;
-        private bool _errored = false;
+        //////private bool _errored = false; // Not used yet
         private HttpRequestParser _parser;
 
         // Members used by Properties
@@ -60,7 +62,7 @@ namespace server
         {
             if (!_disposed)
             {
-                Server.UnregisterClient(this);
+                ////// Server.UnregisterClient(this);
                 _state = ClientState.Closed;
                 if (_stream != null)
                 {
@@ -131,7 +133,7 @@ namespace server
             {
                 return;
             }
-            if (_state == ClientState.ReadingProlog && Server.State != HttpServerState.Started) //OK?...
+            if (_state == ClientState.ReadingProlog && Server.State != HttpServerState.Started)
             {
                 Dispose();
                 return;
@@ -139,7 +141,7 @@ namespace server
 
             try
             {
-                ReadBuffer.EndRead(_stream, asyncResult); //OK?...
+                ReadBuffer.EndRead(_stream, asyncResult);
             }
             catch (ObjectDisposedException)
             {
@@ -166,7 +168,7 @@ namespace server
         {
             while (ReadBuffer.DataAvailable && _writeStream == null)
             {
-                switch (_state) //// OK? Should this switch be evaluated inside the loop?
+                switch (_state)
                 {
                     case ClientState.ReadingProlog:
                         ProcessProlog();
@@ -196,9 +198,13 @@ namespace server
                 throw new ProtocolException("The following line could not be parsed by PrologRegex member: " + line);
             }
 
-            ////Set the Method property to the value of the group at position 1.
-            ////Set the Request property to the value of the group at position 2.
-            ////Set the Protocol property to the value of the group at position 3.
+            Method = match.Groups[1].Value;
+            Request = match.Groups[2].Value;
+            Protocol = match.Groups[3].Value;
+
+            Console.WriteLine("Method: " + Method);
+            Console.WriteLine("Request: " + Request);
+            Console.WriteLine("Protocol: " + Protocol);
 
             _state = ClientState.ReadingHeaders;
             ProcessHeaders();
@@ -247,12 +253,15 @@ namespace server
             }
         }
 
-        private void ExecuteRequest() { } // Yet to be implemented
+        internal void ExecuteRequest() // Yet to be implemented //made internal, originally private
+        {
+            Console.WriteLine("ExecuteRequest() method has been called.");
+        }
 
         private void Reset()
         {
             _state = ClientState.ReadingProlog;
-            _context = null;
+            //////_context = null;
             if (_parser != null)
             {
                 _parser.Dispose();
@@ -362,6 +371,24 @@ namespace server
                 return true;
             }
             return false;
+        }
+
+        private void SendContinueResponse()
+        {
+            var sb = new StringBuilder();
+            sb.Append(Protocol);
+            sb.Append(" 100 Continue\r\nServer: ");
+            sb.Append(Server.ServerBanner);
+            sb.Append("\r\nDate: ");
+            sb.Append(DateTime.UtcNow.ToString("R"));
+            sb.Append("\r\n\r\n");
+            var bytes = Encoding.ASCII.GetBytes(sb.ToString());
+            if (_writeStream != null)
+                _writeStream.Dispose();
+            _writeStream = new MemoryStream();
+            _writeStream.Write(bytes, 0, bytes.Length);
+            _writeStream.Position = 0;
+            //BeginWrite();
         }
 
 
