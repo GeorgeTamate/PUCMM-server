@@ -427,5 +427,9 @@ namespace server
         public NameValueCollection PostParameters { get; set; }
 
         #endregion
+
+        //////// Dummy method to prevent xbuild warning
+        public void Dummy()
+        { Console.WriteLine(_writeBuffer.ToString()); }
     }
 }

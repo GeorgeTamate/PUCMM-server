@@ -13,6 +13,10 @@ namespace server
         private static readonly byte[] MoreBoundary = Encoding.ASCII.GetBytes("\r\n");
         private static readonly byte[] EndBoundary = Encoding.ASCII.GetBytes("--");
 
+        //////// Dummy method to prevent xbuild warning
+        public void Dummy()
+        { Console.WriteLine(Log.ToString()); }
+
         private Dictionary<string, string> _headers = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
         private ParserState _state = ParserState.BeforeFirstHeaders;
         private readonly byte[] _firstBoundary;
