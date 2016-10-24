@@ -23,7 +23,7 @@ namespace server
 
         public HttpServer(int port)
         {
-            if (isPortAvailable(port))
+            if (IsPortAvailable(port))
             { Port = port; }
             else
             {
@@ -48,12 +48,14 @@ namespace server
         public void Start()
         {
             VerifyState(HttpServerState.Stopped);
+            TimeoutManager = new HttpTimeoutManager(this);
             _listener = new TcpListener(EndPoint);
+            ServerUtility = new HttpServerUtility();
             State = HttpServerState.Starting;
             try
             {
                 _listener.Start();
-                EndPoint = (IPEndPoint)_listener.LocalEndpoint;
+                EndPoint = _listener.LocalEndpoint as IPEndPoint;
                 State = HttpServerState.Started;
                 BeginAcceptTcpClient();
             }
@@ -95,6 +97,12 @@ namespace server
                 }
                 _disposed = true;
             }
+
+            if (TimeoutManager != null)
+            {
+                TimeoutManager.Dispose();
+                TimeoutManager = null;
+            }
         }
 
         #endregion
@@ -105,22 +113,25 @@ namespace server
         {
             var listener = _listener;
             if(listener == null)
-            { throw new NullReferenceException("Local listener from HttpServer.BeginAcceptTcpClient() is null."); }
+            {
+                throw new NullReferenceException("Local listener from HttpServer.BeginAcceptTcpClient() is null.");
+            }
             listener.BeginAcceptTcpClient(AcceptTcpClientCallback, listener);
         }
 
-        private void AcceptTcpClientCallback(IAsyncResult iar)
+        private void AcceptTcpClientCallback(IAsyncResult asyncResult)
         {
             try
             {
                 var listener = _listener;
                 if (listener == null) { return; }
-                var tcpClient = listener.EndAcceptTcpClient(iar);
+                var tcpClient = listener.EndAcceptTcpClient(asyncResult);
                 if (State == HttpServerState.Stopped) { tcpClient.Close(); }
-                var client = new HttpClient(this, tcpClient);
+                var client = new HttpClient(this, tcpClient, ReadBufferSize, WriteBufferSize);
                 RegisterClient(client);
                 client.BeginRequest();
-                listener.BeginAcceptTcpClient(AcceptTcpClientCallback, listener);
+                ////////listener.BeginAcceptTcpClient(AcceptTcpClientCallback, listener);
+                BeginAcceptTcpClient();
             }
             catch (ObjectDisposedException) { }
             catch (Exception ex) { Console.WriteLine(ex.ToString()); }
@@ -145,7 +156,7 @@ namespace server
                 throw new InvalidOperationException(String.Format("Expected server to be in the '{0}' state", state));
         }
 
-        private bool isPortAvailable(int port)
+        private bool IsPortAvailable(int port)
         {
             IPGlobalProperties ipGlobalProperties = IPGlobalProperties.GetIPGlobalProperties();
             TcpConnectionInformation[] tcpConnInfoArray = ipGlobalProperties.GetActiveTcpConnections();
@@ -203,6 +214,11 @@ namespace server
         public TimeSpan WriteTimeout { get; set; }
 
         public TimeSpan ShutdownTimeout { get; set; }
+
+        internal HttpServerUtility ServerUtility { get; private set; }
+
+        internal HttpTimeoutManager TimeoutManager { get; private set; }
+
 
         #endregion
 

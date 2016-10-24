@@ -1,7 +1,7 @@
 ﻿
 namespace server
 {
-    public enum HttpClientState {
+    public enum ClientState {
         ReadingProlog,
         ReadingHeaders,
         ReadingContent,
