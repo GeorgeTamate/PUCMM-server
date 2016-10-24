@@ -61,28 +61,28 @@ namespace server
 
             //--------------- Listen --------------//
 
-            //Stopwatch stopWatch = new Stopwatch();
-            //stopWatch.Start();
-            //string cmd;
+            Stopwatch stopWatch = new Stopwatch();
+            stopWatch.Start();
+            string cmd;
 
             Console.WriteLine($"Listening on port {portNum}...");
 
             HttpServer httpServer = new HttpServer(portNum);
             httpServer.Start();
 
-            //while (true)
-            //{
-            //    cmd = Console.ReadLine();
-            //    if (cmd.ToLower() == "uptime")
-            //    {
-            //        Console.WriteLine("Time since Server started: " + stopWatch.Elapsed);
-            //    }
-            //    else if (cmd.ToLower() == "break")
-            //    { break; }
-            //};
+            while (true)
+            {
+                cmd = Console.ReadLine();
+                if (cmd.ToLower() == "uptime")
+                {
+                    Console.WriteLine("Time since Server started: " + stopWatch.Elapsed);
+                }
+                else if (cmd.ToLower() == "break")
+                { break; }
+            };
 
             httpServer.Stop();
-            //stopWatch.Stop();
+            stopWatch.Stop();
 
             return 0;
         }

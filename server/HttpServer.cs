@@ -113,7 +113,9 @@ namespace server
         {
             var listener = _listener;
             if(listener == null)
-            { throw new NullReferenceException("Local listener from HttpServer.BeginAcceptTcpClient() is null."); }
+            {
+                throw new NullReferenceException("Local listener from HttpServer.BeginAcceptTcpClient() is null.");
+            }
             listener.BeginAcceptTcpClient(AcceptTcpClientCallback, listener);
         }
 
@@ -128,7 +130,8 @@ namespace server
                 var client = new HttpClient(this, tcpClient, ReadBufferSize, WriteBufferSize);
                 RegisterClient(client);
                 client.BeginRequest();
-                listener.BeginAcceptTcpClient(AcceptTcpClientCallback, listener);
+                ////////listener.BeginAcceptTcpClient(AcceptTcpClientCallback, listener);
+                BeginAcceptTcpClient();
             }
             catch (ObjectDisposedException) { }
             catch (Exception ex) { Console.WriteLine(ex.ToString()); }

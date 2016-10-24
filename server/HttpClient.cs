@@ -45,6 +45,8 @@ namespace server
             { throw new ArgumentOutOfRangeException("WriteBufferSize argument provided is a negative number."); }
             _writeBuffer = new byte[writeBufferSize];
 
+            _stream = TcpClient.GetStream(); ////////
+
         }
 
         #endregion
@@ -53,7 +55,7 @@ namespace server
 
         public void BeginRequest()
         {
-            // Console.WriteLine("HttpClient.BeginRequest() method has been called.");
+            //Console.WriteLine("HttpClient.BeginRequest() method has been called.");
             Reset();
             BeginRead();
         }
@@ -117,7 +119,7 @@ namespace server
                 // Reads should be within a certain timeframe ////
 
                 Server.TimeoutManager.ReadQueue.Add(
-                    ReadBuffer.BeginRead(_stream, ReadCallback, null),
+                    ReadBuffer.BeginRead(_stream, ReadCallback, null), //null obj
                     this
                 );
             }
@@ -202,9 +204,9 @@ namespace server
             Request = match.Groups[2].Value;
             Protocol = match.Groups[3].Value;
 
-            Console.WriteLine("Method: " + Method);
-            Console.WriteLine("Request: " + Request);
-            Console.WriteLine("Protocol: " + Protocol);
+            Console.WriteLine("Method: " + Method); ////////
+            Console.WriteLine("Request: " + Request); ////////
+            Console.WriteLine("Protocol: " + Protocol); ////////
 
             _state = ClientState.ReadingHeaders;
             ProcessHeaders();
@@ -223,7 +225,7 @@ namespace server
                     return;
                 }
                 string[] parts = line.Split(':');
-                if (parts.Length != 2)
+                if (parts.Length < 2) ////////
                 {
                     throw new ProtocolException("Received header without colon.");
                 }
