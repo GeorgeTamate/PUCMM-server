@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Net;
 using System.Net.NetworkInformation;
 using System.Net.Sockets;
@@ -44,7 +45,7 @@ namespace server
 
         #endregion
 
-        #region Public Methods
+        #region Public and Internal Methods
 
         public void Start()
         {
@@ -64,11 +65,13 @@ namespace server
             {
                 Console.WriteLine("The Server failed to start.");
                 State = HttpServerState.Stopped;
+                throw new PHttpException("Failed to start HTTP server.");
             }
         }
 
         public void Stop()
         {
+            VerifyState(HttpServerState.Started);
             State = HttpServerState.Stopping;
             try
             {
@@ -77,9 +80,11 @@ namespace server
             catch
             {
                 Console.WriteLine("The Server failed to stop.");
+                throw new PHttpException("Failed to stop HTTP server.");
             }
             finally
             {
+                StopClients();
                 _listener = null;
                 State = HttpServerState.Stopped;
             }
@@ -105,6 +110,39 @@ namespace server
                 TimeoutManager = null;
             }
         }
+
+        internal void RaiseRequest(HttpContext context)
+        {
+            if (context == null)
+                throw new ArgumentNullException("context");
+            OnRequestReceived(new HttpRequestEventArgs(context));
+        }
+
+        internal bool RaiseUnhandledException(HttpContext context, Exception exception)
+        {
+            if (context == null)
+                throw new ArgumentNullException("context");
+            var e = new HttpExceptionEventArgs(context, exception);
+            OnUnhandledException(e);
+            return e.Handled;
+        }
+
+        internal void UnregisterClient(HttpClient client)
+        {
+            if (client == null)
+            {
+                throw new ArgumentNullException("Client argument in HttpServer.UnregisterClient() method is null");
+            }
+
+            lock (_syncLock)
+            {
+                Debug.Assert(_clients.ContainsKey(client));
+                _clients.Remove(client);
+                _clientsChangedEvent.Set();
+            }
+        }
+
+
 
         #endregion
 
@@ -172,6 +210,69 @@ namespace server
             return true;
         }
 
+        private void StopClients()
+        {
+            var shutdownStarted = DateTime.Now;
+            bool forceShutdown = false;
+            // Clients that are waiting for new requests are closed.
+
+            List<HttpClient> clients;
+            lock (_syncLock)
+            {
+                clients = new List<HttpClient>(_clients.Keys);
+            }
+
+            foreach (var client in clients)
+            {
+                client.RequestClose();
+            }
+
+            // First give all clients a chance to complete their running requests.
+            while (true)
+            {
+                lock (_syncLock)
+                {
+                    if (_clients.Count == 0)
+                        break;
+                }
+
+                var shutdownRunning = DateTime.Now - shutdownStarted;
+
+                if (shutdownRunning >= ShutdownTimeout)
+                {
+                    forceShutdown = true;
+                    break;
+                }
+                _clientsChangedEvent.WaitOne(ShutdownTimeout - shutdownRunning);
+            }
+
+            if (!forceShutdown)
+                return;
+
+            // If there are still clients running after the timeout, their
+            // connections will be forcibly closed.
+            lock (_syncLock)
+            {
+                clients = new List<HttpClient>(_clients.Keys);
+            }
+
+            foreach (var client in clients)
+            {
+                client.ForceClose();
+            }
+
+            // Wait for the registered clients to be cleared.
+            while (true)
+            {
+                lock (_syncLock)
+                {
+                    if (_clients.Count == 0)
+                        break;
+                }
+                _clientsChangedEvent.WaitOne();
+            }
+        }
+
         #endregion
 
         #region Protected Methods and Events
@@ -180,6 +281,26 @@ namespace server
         protected virtual void OnChangedState(EventArgs args)
         {
             var ev = StateChanged;
+            if (ev != null)
+            {
+                ev(this, args);
+            }
+        }
+
+        public event HttpRequestEventHandler RequestReceived;
+        protected virtual void OnRequestReceived(HttpRequestEventArgs args)
+        {
+            var ev = RequestReceived;
+            if (ev != null)
+            {
+                ev(this, args);
+            }
+        }
+
+        public event HttpExceptionEventHandler UnhandledException;
+        protected virtual void OnUnhandledException(HttpExceptionEventArgs args)
+        {
+            var ev = UnhandledException;
             if (ev != null)
             {
                 ev(this, args);

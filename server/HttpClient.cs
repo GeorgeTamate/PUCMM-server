@@ -64,7 +64,7 @@ namespace server
         {
             if (!_disposed)
             {
-                ////// Server.UnregisterClient(this);
+                Server.UnregisterClient(this);
                 _state = ClientState.Closed;
                 if (_stream != null)
                 {
