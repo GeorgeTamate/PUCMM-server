@@ -210,7 +210,6 @@ namespace server
 
                 if (name == null)
                 {
-                    Log.Info("Received multipart item without name");
                     continue;
                 }
 
