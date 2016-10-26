@@ -17,7 +17,7 @@ namespace server
         private AutoResetEvent _clientsChangedEvent = new AutoResetEvent(false);
 
         // Members used by Properties
-        private HttpServerState _state = HttpServerState.Stopped;
+        private HttpServerState _state;
 
         #region Constructors
 
@@ -33,6 +33,7 @@ namespace server
             } 
 
             EndPoint = new IPEndPoint(IPAddress.Loopback, Port);
+            State = HttpServerState.Stopped;
             ReadBufferSize = 4096;
             WriteBufferSize = 4096;
             ServerBanner = String.Format("PUCMM_HTTP/{0}", GetType().Assembly.GetName().Version);

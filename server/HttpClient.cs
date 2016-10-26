@@ -185,6 +185,10 @@ namespace server
                         throw new InvalidOperationException("Invalid Client State: " + _state.ToString());
                 }
             }
+            if (_writeStream == null)
+            {
+                BeginRead();
+            }
         }
 
         private void ProcessProlog()
