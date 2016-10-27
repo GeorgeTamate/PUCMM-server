@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Collections.Specialized;
 using System.Diagnostics;
+using System.Globalization;
 using System.IO;
 using System.Net.Sockets;
 using System.Text;
@@ -18,8 +19,9 @@ namespace server
         private readonly byte[] _writeBuffer;
         private NetworkStream _stream;
         private MemoryStream _writeStream;
-        //////private bool _errored = false; // Not used yet
+        private bool _errored = false;
         private HttpRequestParser _parser;
+        private HttpContext _context;
 
         // Members used by Properties
         private TcpClient _tcpClient;
@@ -64,7 +66,7 @@ namespace server
         {
             if (!_disposed)
             {
-                ////// Server.UnregisterClient(this);
+                Server.UnregisterClient(this);
                 _state = ClientState.Closed;
                 if (_stream != null)
                 {
@@ -164,7 +166,59 @@ namespace server
             }
         }
 
-        private void ProcessException(Exception ex) { } //// Yet to be implemented
+        private void ProcessException(Exception exception)
+        {
+            if (_disposed)
+                return;
+            _errored = true;
+
+            // If there is no request available, the error didn't occur as part
+            // of a request (e.g. the client closed the connection). Just close
+            // the channel in that case.
+            if (Request == null)
+            {
+                Dispose();
+                return;
+            }
+
+            try
+            {
+                if (_context == null)
+                    _context = new HttpContext(this);
+
+                _context.Response.Status = "500 Internal Server Error";
+
+                bool handled;
+                try
+                {
+                    handled = Server.RaiseUnhandledException(_context, exception);
+                }
+                catch
+                {
+                    handled = false;
+                }
+
+                if (!handled && _context.Response.OutputStream.CanWrite)
+                {
+                    string resourceName = GetType().Namespace + ".Resources.InternalServerError.html";
+                    using (var stream = GetType().Assembly.GetManifestResourceStream(resourceName))
+                    {
+                        byte[] buffer = new byte[4096];
+                        int read;
+                        while ((read = stream.Read(buffer, 0, buffer.Length)) != 0)
+                        {
+                            _context.Response.OutputStream.Write(buffer, 0, read);
+                        }
+                    }
+                }
+
+                WriteResponseHeaders();
+            }
+            catch (Exception /*ex*/)
+            {
+                Dispose();
+            }
+        }
 
         private void ProcessReadBuffer()
         {
@@ -184,6 +238,10 @@ namespace server
                     default:
                         throw new InvalidOperationException("Invalid Client State: " + _state.ToString());
                 }
+            }
+            if (_writeStream == null)
+            {
+                BeginRead();
             }
         }
 
@@ -255,15 +313,25 @@ namespace server
             }
         }
 
-        internal void ExecuteRequest() // Yet to be implemented //made internal, originally private
+        internal void ExecuteRequest() ////////made internal, originally private
         {
-            Console.WriteLine("ExecuteRequest() method has been called.");
+            _context = new HttpContext(this);
+            Server.RaiseRequest(_context);
+            WriteResponseHeaders();
+        }
+
+        private void WriteResponseHeaders()
+        {
+            byte[] headers = BuildResponseHeaders();
+            _writeStream = new MemoryStream(headers);
+            _state = ClientState.WritingHeaders;
+            BeginWrite();
         }
 
         private void Reset()
         {
             _state = ClientState.ReadingProlog;
-            //////_context = null;
+            _context = null;
             if (_parser != null)
             {
                 _parser.Dispose();
@@ -390,7 +458,161 @@ namespace server
             _writeStream = new MemoryStream();
             _writeStream.Write(bytes, 0, bytes.Length);
             _writeStream.Position = 0;
-            //BeginWrite();
+            BeginWrite();
+        }
+
+        private void ProcessRequestCompleted()
+        {
+            string connectionHeader;
+            // Do not accept new requests when the server is stopping.
+            if (
+                !_errored &&
+                Server.State == HttpServerState.Started &&
+                Headers.TryGetValue("Connection", out connectionHeader) &&
+                String.Equals(connectionHeader, "keep-alive", StringComparison.OrdinalIgnoreCase)
+            )
+                BeginRequest();
+            else
+                Dispose();
+        }
+
+        private byte[] BuildResponseHeaders()
+        {
+            var response = _context.Response;
+            var sb = new StringBuilder();
+
+            // Write the prolog.
+            sb.Append(Protocol);
+            sb.Append(' ');
+            sb.Append(response.StatusCode);
+            if (!String.IsNullOrEmpty(response.StatusDescription))
+            {
+                sb.Append(' ');
+                sb.Append(response.StatusDescription);
+            }
+            sb.Append("\r\n");
+
+            // Write all headers provided by Response.
+            if (!String.IsNullOrEmpty(response.CacheControl))
+                WriteHeader(sb, "Cache-Control", response.CacheControl);
+
+            if (!String.IsNullOrEmpty(response.ContentType))
+            {
+                string contentType = response.ContentType;
+                if (!String.IsNullOrEmpty(response.CharSet))
+                    contentType += "; charset=" + response.CharSet;
+                WriteHeader(sb, "Content-Type", contentType);
+            }
+
+            WriteHeader(sb, "Expires", response.ExpiresAbsolute.ToString("R"));
+
+            if (!String.IsNullOrEmpty(response.RedirectLocation))
+                WriteHeader(sb, "Location", response.RedirectLocation);
+
+            // Write the remainder of the headers.
+            foreach (string key in response.Headers.AllKeys)
+            {
+                WriteHeader(sb, key, response.Headers[key]);
+            }
+
+            // Write the content length (we override custom headers for this).
+            WriteHeader(sb, "Content-Length", response.OutputStream.BaseStream.Length.ToString(CultureInfo.InvariantCulture));
+            for (int i = 0; i < response.Cookies.Count; i++)
+            {
+                WriteHeader(sb, "Set-Cookie", response.Cookies[i].GetHeaderValue());
+            }
+            sb.Append("\r\n");
+
+            return response.HeadersEncoding.GetBytes(sb.ToString());
+        }
+
+        private void WriteHeader(StringBuilder sb, string key, string value)
+        {
+            sb.Append(key);
+            sb.Append(": ");
+            sb.Append(value);
+            sb.Append("\r\n");
+        }
+
+        private void WriteResponseContent()
+        {
+            if (_writeStream != null)
+                _writeStream.Dispose();
+            _writeStream = _context.Response.OutputStream.BaseStream;
+            _writeStream.Position = 0;
+            _state = ClientState.WritingContent;
+            BeginWrite();
+        }
+
+        private void BeginWrite()
+        {
+            try
+            {
+                int read = _writeStream.Read(_writeBuffer, 0, 0); //OK? Should them be zeros?
+                Server.TimeoutManager.WriteQueue.Add(
+                    _stream.BeginWrite(_writeBuffer, 0, read, WriteCallback, null),
+                    this
+                );
+            }
+            catch
+            {
+                Dispose();
+            }
+        }
+
+        private void WriteCallback(IAsyncResult asyncResult)
+        {
+            if (_disposed)
+            {
+                return;
+            } 
+            try
+            {
+                _writeStream.EndWrite(asyncResult); //OK? Is the writeStream we should call?
+                if (_writeStream != null && _writeStream.Length != _writeStream.Position)
+                {
+                    BeginWrite();
+                }
+                else
+                {
+                    if (_writeStream != null) //OK? instruction said to check if null
+                    {
+                        _writeStream.Dispose();
+                        _writeStream = null;
+                    }
+                    switch (_state)
+                    {
+                        case ClientState.WritingHeaders:
+                            WriteResponseContent();
+                            break;
+                        case ClientState.WritingContent:
+                            ProcessRequestCompleted();
+                            break;
+                        default:
+                            Debug.Assert(_state != ClientState.Closed);
+                            if (ReadBuffer.DataAvailable)
+                            {
+                                try
+                                {
+                                    ProcessReadBuffer();
+                                }
+                                catch (Exception ex)
+                                {
+                                    ProcessException(ex);
+                                }
+                            }
+                            else
+                            {
+                                BeginRead();
+                            }
+                            break;
+                    }
+                }
+            }
+            catch
+            {
+                Dispose();
+            }
         }
 
 
@@ -428,8 +650,5 @@ namespace server
 
         #endregion
 
-        //////// Dummy method to prevent xbuild warning
-        public void Dummy()
-        { Console.WriteLine(_writeBuffer.ToString()); }
     }
 }
