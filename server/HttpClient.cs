@@ -548,7 +548,7 @@ namespace server
         {
             try
             {
-                int read = _writeStream.Read(_writeBuffer, 0, 0); //OK? Should them be zeros?
+                int read = _writeStream.Read(_writeBuffer, 0, 4096); //OK? Should them be zeros?
                 Server.TimeoutManager.WriteQueue.Add(
                     _stream.BeginWrite(_writeBuffer, 0, read, WriteCallback, null),
                     this
