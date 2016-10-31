@@ -166,7 +166,7 @@ namespace server
                 if (listener == null) { return; }
                 var tcpClient = listener.EndAcceptTcpClient(asyncResult);
                 if (State == HttpServerState.Stopped) { tcpClient.Close(); }
-                var client = new HttpClient(this, tcpClient, ReadBufferSize, WriteBufferSize);
+                var client = new HttpClient(this, tcpClient);
                 RegisterClient(client);
                 client.BeginRequest();
                 ////////listener.BeginAcceptTcpClient(AcceptTcpClientCallback, listener);

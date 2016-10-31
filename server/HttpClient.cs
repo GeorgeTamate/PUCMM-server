@@ -29,26 +29,20 @@ namespace server
 
         #region Constructors
 
-        public HttpClient(HttpServer httpServer, TcpClient tcpClient, int readBufferSize, int writeBufferSize)
+        public HttpClient(HttpServer httpServer, TcpClient tcpClient)
         {
             if (httpServer == null)
-            { throw new ArgumentNullException("HttpServer argument provided is null."); }
-            Server = httpServer;
-
+                throw new ArgumentNullException(nameof(httpServer));
             if (tcpClient == null)
-            { throw new ArgumentNullException("TcpClient argument provided is null."); }
+                throw new ArgumentNullException(nameof(tcpClient));
+
+            Server = httpServer;
             TcpClient = tcpClient;
             
-            if (readBufferSize < 0)
-            { throw new ArgumentOutOfRangeException("ReadBufferSize argument provided is a negative number."); }
-            ReadBuffer = new HttpReadBuffer(readBufferSize);
-            
-            if (writeBufferSize < 0)
-            { throw new ArgumentOutOfRangeException("WriteBufferSize argument provided is a negative number."); }
-            _writeBuffer = new byte[writeBufferSize];
+            ReadBuffer = new HttpReadBuffer(httpServer.ReadBufferSize);
+            _writeBuffer = new byte[httpServer.WriteBufferSize];
 
-            _stream = TcpClient.GetStream(); ////////
-
+            _stream = tcpClient.GetStream();
         }
 
         #endregion
@@ -125,9 +119,10 @@ namespace server
                     this
                 );
             }
-            catch (Exception /*ex*/) ////
+            catch (Exception ex)
             {
                 Dispose();
+                ProcessException(ex);
             }
         }
 
@@ -298,19 +293,14 @@ namespace server
                 _parser.Parse();
                 return;
             }
-            else if (ProcessExpectHeader())
-            {
+
+            if (ProcessExpectHeader())
                 return;
 
-            }
-            else if (ProcessContentLengthHeader())
-            {
+            if (ProcessContentLengthHeader())
                 return;
-            }
-            else
-            {
-                ExecuteRequest();
-            }
+            
+            ExecuteRequest(); 
         }
 
         internal void ExecuteRequest() ////////made internal, originally private
@@ -323,6 +313,8 @@ namespace server
         private void WriteResponseHeaders()
         {
             byte[] headers = BuildResponseHeaders();
+            if (_writeStream != null)
+                _writeStream.Dispose();
             _writeStream = new MemoryStream(headers);
             _state = ClientState.WritingHeaders;
             BeginWrite();
@@ -548,15 +540,16 @@ namespace server
         {
             try
             {
-                int read = _writeStream.Read(_writeBuffer, 0, 4096); //OK? Should them be zeros?
+                int read = _writeStream.Read(_writeBuffer, 0, _writeBuffer.Length);
                 Server.TimeoutManager.WriteQueue.Add(
                     _stream.BeginWrite(_writeBuffer, 0, read, WriteCallback, null),
                     this
                 );
             }
-            catch
+            catch(Exception ex)
             {
                 Dispose();
+                ProcessException(ex);
             }
         }
 
@@ -568,14 +561,14 @@ namespace server
             } 
             try
             {
-                _writeStream.EndWrite(asyncResult); //OK? Is the writeStream we should call?
+                _stream.EndWrite(asyncResult);
                 if (_writeStream != null && _writeStream.Length != _writeStream.Position)
                 {
                     BeginWrite();
                 }
                 else
                 {
-                    if (_writeStream != null) //OK? instruction said to check if null
+                    if (_writeStream != null)
                     {
                         _writeStream.Dispose();
                         _writeStream = null;
@@ -609,9 +602,11 @@ namespace server
                     }
                 }
             }
-            catch
+            catch(Exception ex)
             {
+                Console.WriteLine($"Something happened! {ex.Message}");
                 Dispose();
+                ProcessException(ex);
             }
         }
 

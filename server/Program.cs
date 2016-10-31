@@ -702,10 +702,10 @@ namespace server
                     // When writing text, a StreamWriter can be used.
 
 
-                    using (var writer = new StreamWriter(e.Response.OutputStream))
-                    {
-                        writer.Write("Hello world!");
-                    }
+                    //using (var writer = new StreamWriter(e.Response.OutputStream))
+                    //{
+                    //    writer.Write("Hello world!");
+                    //}
                     #endregion
 
                     #region 500 Error test
@@ -736,7 +736,7 @@ namespace server
                     else
                     {
                         e.Response.Status = "404 Not Found";
-                    //TODO: RR: Add code to load 404 file.
+                        //TODO: RR: Add code to load 404 file.
                     }
                     #endregion
                 };
@@ -751,7 +751,7 @@ namespace server
 
                 // Start the default web browser.
 
-                Process.Start(String.Format("http://{0}/", server.EndPoint));
+                //Process.Start(String.Format("http://{0}/", server.EndPoint));
 
                 Console.WriteLine("Press any key to continue...");
                 Console.ReadKey();
