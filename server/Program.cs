@@ -92,6 +92,8 @@
 
 
 
+using Newtonsoft.Json;
+using Nustache.Core;
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
@@ -702,49 +704,68 @@ namespace server
                     // When writing text, a StreamWriter can be used.
 
 
-                    //using (var writer = new StreamWriter(e.Response.OutputStream))
-                    //{
-                    //    writer.Write("Hello world!");
-                    //}
+                    using (var writer = new StreamWriter(e.Response.OutputStream))
+                    {
+                        // Loading model/s
+                        var product = new
+                        {
+                            Name = "Apple",
+                            ExpiryDate = new DateTime(2008, 12, 28),
+                            Price = 3.99M,
+                            Sizes = new[]
+                                {
+                                    new { Name= "Small" },
+                                    new { Name = "Medium" },
+                                    new { Name = "Large" }
+                                }
+                        };
+
+                        // Parsing template
+                        var html = Render.FileToString("foo.ghtml", product);
+
+
+                        writer.Write(html);
+                    }
                     #endregion
 
                     #region 500 Error test
                     //throw new Exception("Oops");
                     #endregion
 
+
                     #region File Based serve
                     //TODO: RR: Add this as a server config option
                     //const string filePath = @"C:\Users\raulr\Desktop\WebServer\";
-                    const string filePath = @"C:\Users\GeorgeTamate\Desktop\";
-                    string noSlash = e.Request.Path;
-                    string path = filePath + noSlash.TrimStart('/');
-                    if (File.Exists(path))
-                    {
-                        using (
-                        var stream = File.Open(path, FileMode.Open))
-                        {
-                            e.Response.ContentType = GetMimeType(Path.GetExtension(path));
-                            byte[] buffer = new byte[4096];
-                            int read;
+                    //const string filePath = @"C:\Users\GeorgeTamate\Desktop\";
+                    //string noSlash = e.Request.Path;
+                    //string path = filePath + noSlash.TrimStart('/');
+                    //if (File.Exists(path))
+                    //{
+                    //    using (
+                    //    var stream = File.Open(path, FileMode.Open))
+                    //    {
+                    //        e.Response.ContentType = GetMimeType(Path.GetExtension(path));
+                    //        byte[] buffer = new byte[4096];
+                    //        int read;
 
-                            while ((read = stream.Read(buffer, 0, buffer.Length)) != 0)
-                            {
-                                e.Response.OutputStream.Write(buffer, 0, read);
-                            }
-                        }
-                    }
-                    else
-                    {
-                        e.Response.Status = "404 Not Found";
-                        //TODO: RR: Add code to load 404 file.
-                    }
+                    //        while ((read = stream.Read(buffer, 0, buffer.Length)) != 0)
+                    //        {
+                    //            e.Response.OutputStream.Write(buffer, 0, read);
+                    //        }
+                    //    }
+                    //}
+                    //else
+                    //{
+                    //    e.Response.Status = "404 Not Found";
+                    //    //TODO: RR: Add code to load 404 file.
+                    //}
                     #endregion
                 };
 
                 // Start the server on a random port. Use server.EndPoint
                 // to specify a specific port, e.g.:
                 //
-                server.EndPoint = new IPEndPoint(IPAddress.Loopback, 8081);
+                //server.EndPoint = new IPEndPoint(IPAddress.Loopback, 8081);
                 //
 
                 server.Start();

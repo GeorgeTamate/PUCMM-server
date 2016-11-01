@@ -141,6 +141,10 @@ namespace server
             try
             {
                 ReadBuffer.EndRead(_stream, asyncResult);
+                if (ReadBuffer.DataAvailable)
+                    ProcessReadBuffer();
+                else
+                    Dispose();
             }
             catch (ObjectDisposedException)
             {
@@ -149,15 +153,6 @@ namespace server
             catch (Exception ex)
             {
                 ProcessException(ex);
-            }
-
-            if (ReadBuffer.DataAvailable)
-            {
-                ProcessReadBuffer();
-            }
-            else
-            {
-                Dispose();
             }
         }
 
@@ -277,8 +272,8 @@ namespace server
                     ProcessContent();
                     return;
                 }
-                string[] parts = line.Split(':');
-                if (parts.Length < 2) ////////
+                string[] parts = line.Split(new[] {':'}, 2);
+                if (parts.Length != 2) ////////
                 {
                     throw new ProtocolException("Received header without colon.");
                 }
