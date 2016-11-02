@@ -316,8 +316,9 @@ namespace server
             get { return _state; }
             private set
             {
+                var prevState = _state;
                 _state = value;
-                OnChangedState(EventArgs.Empty);
+                OnChangedState(new StateChangedEventArgs(prevState, _state));
             }
         }
 
