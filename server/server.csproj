@@ -110,6 +110,11 @@
   <ItemGroup>
     <None Include="App.config" />
     <None Include="packages.config" />
+    <None Include="Resources\create.cshtml" />
+    <None Include="Resources\details.cshtml" />
+    <None Include="Resources\layout.cshtml" />
+    <None Include="Resources\list.cshtml" />
+    <None Include="Resources\partial.cshtml" />
   </ItemGroup>
   <ItemGroup>
     <BootstrapperPackage Include=".NETFramework,Version=v4.5">

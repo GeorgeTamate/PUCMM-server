@@ -3,11 +3,31 @@ using System.IO;
 using System.Diagnostics;
 using System.Data.SQLite;
 using System.Collections.Generic;
+using System.Dynamic;
 
 namespace server
 {
     class Program
     {
+        private static readonly string CrudPath = @"C:\Users\GeorgeTamate\Documents\Visual Studio 2015\Projects\PUCMM-server\server\CRUD\";
+        private static readonly string ResourcesPath = @"C:\Users\GeorgeTamate\Documents\Visual Studio 2015\Projects\PUCMM-server\server\Resources\";
+
+        private static readonly IDictionary<string, string> Routes = new Dictionary<string, string>(StringComparer.InvariantCultureIgnoreCase) {
+        
+        #region List of Valid Routes
+
+            {"/", CrudPath + "index.html"},
+            {"/index", CrudPath + "index.html"},
+            {"/partial", ResourcesPath + "partial.cshtml"},
+            {"/list", ResourcesPath + "list.cshtml"},
+            {"/create", ResourcesPath + "create.cshtml"},
+            {"/details", ResourcesPath + "details.cshtml"}
+
+        #endregion
+
+        };
+
+
         private static readonly IDictionary<string, string> Mappings = new Dictionary<string, string>(StringComparer.InvariantCultureIgnoreCase) {
 
         #region Big freaking list of mime types
@@ -597,6 +617,8 @@ namespace server
 
         static int Main(string[] args)
         {
+            #region App Init
+
             Console.WriteLine();
             Console.WriteLine("Initializing Server App... ");
 
@@ -648,6 +670,8 @@ namespace server
             Console.WriteLine($"Using PATH : {path}");
             Console.WriteLine();
 
+#endregion
+
             //--------------- Listen --------------//
 
             Stopwatch stopWatch = new Stopwatch();
@@ -659,7 +683,7 @@ namespace server
             var httpServer = new HttpServer(portNum);
 
 
-            // EVENTS SUBSCRIPTIONS
+            #region Event Subsciptions
 
             httpServer.StateChanged += (sender, e) =>
             {
@@ -676,11 +700,11 @@ namespace server
             {
                 #region File Based serve
                 //TODO: RR: Add this as a server config option
-                string filePath = @"C:\Users\GeorgeTamate\Documents\Visual Studio 2015\Projects\PUCMM-server\server\Resources\";
                 string noSlash = e.Request.Path;
-                filePath = filePath + noSlash.TrimStart('/');
+                string filePath = ResourcesPath + noSlash.TrimStart('/');
                 if (File.Exists(filePath))
                 {
+                    #region Existing File
                     using (
                     var stream = File.Open(filePath, FileMode.Open))
                     {
@@ -693,12 +717,64 @@ namespace server
                             e.Response.OutputStream.Write(buffer, 0, read);
                         }
                     }
+                    #endregion
+                }
+                else if (Routes.ContainsKey(e.Request.Path))
+                {
+                    #region Valid Static Route
+                    using (var writer = new StreamWriter(e.Response.OutputStream))
+                    {
+                        string route;
+                        Routes.TryGetValue(e.Request.Path, out route);
+                        if (route == CrudPath + "index.html")
+                        {
+                            #region Index File
+                            using (
+                                var stream = File.Open(route, FileMode.Open))
+                            {
+                                e.Response.ContentType = GetMimeType(Path.GetExtension(route));
+                                byte[] buffer = new byte[4096];
+                                int read;
+
+                                while ((read = stream.Read(buffer, 0, buffer.Length)) != 0)
+                                {
+                                    e.Response.OutputStream.Write(buffer, 0, read);
+                                }
+                            }
+                            #endregion
+                        }
+                        else
+                        {
+                            #region Layout and Partial
+                            // Array of names
+                            string[] names = { "William", "George", "Pedro" };
+
+                            // Model data
+                            var model = new
+                            {
+                                Names = names
+                            };
+
+                            dynamic ViewBag = new DynamicDictionary();
+                            ViewBag.Title = "PUCMM";
+                            ViewBag.Person = new
+                            {
+                                Name = "Raul",
+                                LastName = "Roa"
+                            };
+
+                            writer.Write(View(route, model, ViewBag));
+                            #endregion
+                        }
+                    }
+                    #endregion
                 }
                 else
                 {
+                    #region 404 NOT FOUND
                     e.Response.Status = "404 Not Found";
                     //TODO: RR: Add code to load 404 file.
-                    string file404 = @"C:\Users\GeorgeTamate\Documents\Visual Studio 2015\Projects\PUCMM-server\server\CRUD\404.html";
+                    string file404 = CrudPath + "404.html";
 
                     using (
                         var stream = File.Open(file404, FileMode.Open))
@@ -712,9 +788,12 @@ namespace server
                             e.Response.OutputStream.Write(buffer, 0, read);
                         }
                     }
+                    #endregion
                 }
                 #endregion
             };
+
+            #endregion
 
 
             // DATABASE
@@ -734,7 +813,6 @@ namespace server
             {
                 conn.Open();
                 CreatePeopleTable(conn);
-                //PrintHighScores(conn);
             }
 
             httpServer.Start();
@@ -779,19 +857,73 @@ namespace server
             }
         }
 
-        static void PrintHighScores(SQLiteConnection dbConn)
+        static string View(string viewRoute, object model, dynamic viewData = null)
         {
-            string sql = "select * from highscores order by score desc";
-            using (SQLiteCommand command = new SQLiteCommand(sql, dbConn))
+            var layout = File.ReadAllText(ResourcesPath + "layout.cshtml");
+            var partial = File.ReadAllText(viewRoute);
+
+            var partialTemplate = HandlebarsDotNet.Handlebars.Compile(new StringReader(partial));
+            HandlebarsDotNet.Handlebars.RegisterTemplate("body", partialTemplate);
+
+            var template = HandlebarsDotNet.Handlebars.Compile(layout);
+
+            // Model wrapper
+            var data = new { Model = model, ViewData = viewData };
+
+            // Transform template into valid HTML
+            return template(data);
+        }
+
+    }
+
+
+
+
+
+
+    public class DynamicDictionary : System.Dynamic.DynamicObject
+    {
+        // The inner dictionary.
+        Dictionary<string, object> dictionary
+            = new Dictionary<string, object>();
+
+        // This property returns the number of elements
+        // in the inner dictionary.
+        public int Count
+        {
+            get
             {
-                using (SQLiteDataReader reader = command.ExecuteReader())
-                {
-                    while (reader.Read())
-                    {
-                        Console.WriteLine("Name: " + reader["name"] + "\tScore: " + reader["score"]);
-                    }
-                }
+                return dictionary.Count;
             }
+        }
+
+        // If you try to get a value of a property 
+        // not defined in the class, this method is called.
+        public override bool TryGetMember(
+            GetMemberBinder binder, out object result)
+        {
+            // Converting the property name to lowercase
+            // so that property names become case-insensitive.
+            string name = binder.Name.ToLower();
+
+            // If the property name is found in a dictionary,
+            // set the result parameter to the property value and return true.
+            // Otherwise, return false.
+            return dictionary.TryGetValue(name, out result);
+        }
+
+        // If you try to set a value of a property that is
+        // not defined in the class, this method is called.
+        public override bool TrySetMember(
+            SetMemberBinder binder, object value)
+        {
+            // Converting the property name to lowercase
+            // so that property names become case-insensitive.
+            dictionary[binder.Name.ToLower()] = value;
+
+            // You can always add a value to a dictionary,
+            // so this method always returns true.
+            return true;
         }
     }
 }
