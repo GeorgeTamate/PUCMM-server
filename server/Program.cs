@@ -10,7 +10,8 @@ namespace server
     class Program
     {
         private static readonly string CrudPath = @"C:\Users\GeorgeTamate\Documents\Visual Studio 2015\Projects\PUCMM-server\server\CRUD\";
-        private static readonly string ResourcesPath = @"C:\Users\GeorgeTamate\Documents\Visual Studio 2015\Projects\PUCMM-server\server\Resources\";
+        //private static readonly string ResourcesPath = @"C:\Users\GeorgeTamate\Documents\Visual Studio 2015\Projects\PUCMM-server\server\Resources\";
+        private static readonly string ResourcesPath = CrudPath;
 
         private static readonly IDictionary<string, string> Routes = new Dictionary<string, string>(StringComparer.InvariantCultureIgnoreCase) {
         
@@ -20,6 +21,7 @@ namespace server
             {"/index", CrudPath + "index.html"},
             {"/partial", ResourcesPath + "partial.cshtml"},
             {"/list", ResourcesPath + "list.cshtml"},
+            {"/people", ResourcesPath + "list.cshtml"},
             {"/create", ResourcesPath + "create.cshtml"},
             {"/details", ResourcesPath + "details.cshtml"}
 
@@ -117,6 +119,7 @@ namespace server
         {".cs", "text/plain"},
         {".csdproj", "text/plain"},
         {".csh", "application/x-csh"},
+        {".cshtml", "text/html"},
         {".csproj", "text/plain"},
         {".css", "text/css"},
         {".csv", "text/csv"},
@@ -726,46 +729,37 @@ namespace server
                     {
                         string route;
                         Routes.TryGetValue(e.Request.Path, out route);
-                        if (route == CrudPath + "index.html")
+                        if (e.Request.Path == "/people")
                         {
-                            #region Index File
-                            using (
-                                var stream = File.Open(route, FileMode.Open))
+                            string fstring;
+                            using (var fstream = e.Request.Files.Get("profilepic").InputStream as FileStream)
                             {
-                                e.Response.ContentType = GetMimeType(Path.GetExtension(route));
-                                byte[] buffer = new byte[4096];
-                                int read;
-
-                                while ((read = stream.Read(buffer, 0, buffer.Length)) != 0)
-                                {
-                                    e.Response.OutputStream.Write(buffer, 0, read);
-                                }
+                                fstring = Convert.ToBase64String(StreamToByteArray(fstream));
                             }
-                            #endregion
+                            //var ms = new MemoryStream(Convert.FromBase64String(fs));
+                            InsertPerson(e.Request.Form.Get("name"), e.Request.Form.Get("lastname"), fstring);
                         }
-                        else
+
+                        dynamic[] list = GetPeopleList().ToArray();
+
+                        string[] names = { "William", "George", "Pedro" };
+
+                        // Model data
+                        var model = new
                         {
-                            #region Layout and Partial
-                            // Array of names
-                            string[] names = { "William", "George", "Pedro" };
+                            Names = names,
+                            List = list
+                        };
 
-                            // Model data
-                            var model = new
-                            {
-                                Names = names
-                            };
+                        dynamic ViewBag = new DynamicDictionary();
+                        ViewBag.Title = "PUCMM";
+                        ViewBag.Person = new
+                        {
+                            Name = "Raul",
+                            LastName = "Roa"
+                        };
 
-                            dynamic ViewBag = new DynamicDictionary();
-                            ViewBag.Title = "PUCMM";
-                            ViewBag.Person = new
-                            {
-                                Name = "Raul",
-                                LastName = "Roa"
-                            };
-
-                            writer.Write(View(route, model, ViewBag));
-                            #endregion
-                        }
+                        writer.Write(View(route, model, ViewBag));
                     }
                     #endregion
                 }
@@ -838,6 +832,20 @@ namespace server
             return 0;
         }
 
+        public static byte[] StreamToByteArray(Stream input)
+        {
+            byte[] buffer = new byte[16 * 1024];
+            using (MemoryStream ms = new MemoryStream())
+            {
+                int read;
+                while ((read = input.Read(buffer, 0, buffer.Length)) > 0)
+                {
+                    ms.Write(buffer, 0, read);
+                }
+                return ms.ToArray();
+            }
+        }
+
         static void CreatePeopleTable(SQLiteConnection dbConn)
         {
             var tableExistsQuery = "SELECT name FROM sqlite_master WHERE type='table' AND name='people';";
@@ -872,6 +880,54 @@ namespace server
 
             // Transform template into valid HTML
             return template(data);
+        }
+
+        static void InsertPerson(string name, string lastname, string profilepic64s)
+        {
+            using (SQLiteConnection conn = new SQLiteConnection("Data Source=test.sqlite;Version=3;"))
+            {
+                conn.Open();
+
+                string sql = $"insert into people (name, lastname, profilepic) values ('{name}', '{lastname}', '{profilepic64s}')";
+                SQLiteCommand command = new SQLiteCommand(sql, conn);
+                command.ExecuteNonQuery();
+            }
+        }
+
+        static List<dynamic> GetPeopleList()
+        {
+            List<dynamic> list = new List<dynamic>();
+
+            using (SQLiteConnection conn = new SQLiteConnection("Data Source=test.sqlite;Version=3;"))
+            {
+                conn.Open();
+
+                string sql = "select * from people";
+                
+                using (SQLiteCommand command = new SQLiteCommand(sql, conn))
+                {
+                    using (SQLiteDataReader reader = command.ExecuteReader())
+                    {
+                        //int rows = 0;
+                        //while (reader.Read())
+                        //{
+                        //    rows++;
+                        //}
+
+
+                        while (reader.Read())
+                        {
+                            dynamic dd = new DynamicDictionary();
+                            dd.Id = reader["id"];
+                            dd.Name = reader["name"];
+                            dd.LastName = reader["lastname"];
+                            dd.ProfilePic = reader["profilepic"];
+                            list.Add(dd);
+                        }
+                    }
+                }
+            }
+            return list;
         }
 
     }
