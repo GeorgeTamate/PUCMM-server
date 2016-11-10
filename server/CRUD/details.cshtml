@@ -1,1 +1,25 @@
 <h1>Details</h1>
+<br><br>
+<form action="list" method="post" enctype="multipart/form-data">
+    <input type="submit" value="Go to List" name="submit">
+</form>
+
+<ul>
+    {{#if Model.Details}}
+    <li>
+        Person ID:  <strong>{{Model.Details.Id}}</strong>
+        <br><br>
+    <li>
+        Name:       <strong>{{Model.Details.Name}} </strong>
+        <br><br>
+    <li>
+        LastName:   <strong>{{Model.Details.LastName}}</strong>
+        <br><br>
+        Profile Image:
+        <br>
+        <img src='data:{{Model.Details.ProfilePic}}' />
+        <br>
+        {{else}}
+        Specified Person does not exist.
+     {{/if}}
+</ul>

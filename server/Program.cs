@@ -21,7 +21,8 @@ namespace server
             {"/index", CrudPath + "index.html"},
             {"/partial", ResourcesPath + "partial.cshtml"},
             {"/list", ResourcesPath + "list.cshtml"},
-            {"/people", ResourcesPath + "list.cshtml"},
+            {"/insert", ResourcesPath + "list.cshtml"},
+            {"/delete", ResourcesPath + "list.cshtml"},
             {"/create", ResourcesPath + "create.cshtml"},
             {"/details", ResourcesPath + "details.cshtml"}
 
@@ -729,18 +730,31 @@ namespace server
                     {
                         string route;
                         Routes.TryGetValue(e.Request.Path, out route);
-                        if (e.Request.Path == "/people")
+                        if (e.Request.Path == "/insert")
                         {
+                            Console.WriteLine("Name: " + e.Request.Form.Get("name"));
+                            Console.WriteLine("LastName: " + e.Request.Form.Get("lastname"));
                             string fstring;
                             using (var fstream = e.Request.Files.Get("profilepic").InputStream as FileStream)
                             {
-                                fstring = Convert.ToBase64String(StreamToByteArray(fstream));
+                                fstring = e.Request.Files.Get("profilepic").ContentType
+                                    + ";base64, "
+                                    + Convert.ToBase64String(StreamToByteArray(fstream));
+                                //var ms = new MemoryStream(Convert.FromBase64String(fs));
+                                //data:image/jpeg;base64, {{this.ProfilePic}}
+                                //Console.WriteLine(e.Request.Files.Get("profilepic").ContentType);
                             }
-                            //var ms = new MemoryStream(Convert.FromBase64String(fs));
                             InsertPerson(e.Request.Form.Get("name"), e.Request.Form.Get("lastname"), fstring);
                         }
 
+                        if (e.Request.Path == "/delete")
+                        {
+                            Console.WriteLine("DELETE where ID: " + e.Request.Form.Get("id"));
+                            DeletePerson(e.Request.Form.Get("id"));
+                        }
+
                         dynamic[] list = GetPeopleList().ToArray();
+                        dynamic details = GetPerson(e.Request.Form.Get("id"));
 
                         string[] names = { "William", "George", "Pedro" };
 
@@ -748,7 +762,8 @@ namespace server
                         var model = new
                         {
                             Names = names,
-                            List = list
+                            List = list,
+                            Details = details
                         };
 
                         dynamic ViewBag = new DynamicDictionary();
@@ -785,6 +800,7 @@ namespace server
                     #endregion
                 }
                 #endregion
+                Console.WriteLine();
             };
 
             #endregion
@@ -894,27 +910,35 @@ namespace server
             }
         }
 
+        static bool DeletePerson(string sId)
+        {
+            int id;
+            if (int.TryParse(sId, out id))
+            {
+                using (SQLiteConnection conn = new SQLiteConnection("Data Source=test.sqlite;Version=3;"))
+                {
+                    conn.Open();
+
+                    string sql = $"delete from people where id='{id}'";
+                    SQLiteCommand command = new SQLiteCommand(sql, conn);
+                    command.ExecuteNonQuery();
+                }
+                return true;
+            }
+            return false;
+        }
+
         static List<dynamic> GetPeopleList()
         {
             List<dynamic> list = new List<dynamic>();
-
             using (SQLiteConnection conn = new SQLiteConnection("Data Source=test.sqlite;Version=3;"))
             {
                 conn.Open();
-
                 string sql = "select * from people";
-                
                 using (SQLiteCommand command = new SQLiteCommand(sql, conn))
                 {
                     using (SQLiteDataReader reader = command.ExecuteReader())
                     {
-                        //int rows = 0;
-                        //while (reader.Read())
-                        //{
-                        //    rows++;
-                        //}
-
-
                         while (reader.Read())
                         {
                             dynamic dd = new DynamicDictionary();
@@ -929,6 +953,40 @@ namespace server
             }
             return list;
         }
+
+        static dynamic GetPerson(string sId)
+        {
+            dynamic dd = new DynamicDictionary();
+            int id;
+            if (int.TryParse(sId, out id))
+            {
+                using (SQLiteConnection conn = new SQLiteConnection("Data Source=test.sqlite;Version=3;"))
+                {
+                    conn.Open();
+                    string sql = $"select * from people where id='{id}'";
+                    using (SQLiteCommand command = new SQLiteCommand(sql, conn))
+                    {
+                        using (SQLiteDataReader reader = command.ExecuteReader())
+                        {
+                            while (reader.Read())
+                            {
+                                dd.Id = reader["id"];
+                                dd.Name = reader["name"];
+                                dd.LastName = reader["lastname"];
+                                dd.ProfilePic = reader["profilepic"];
+                            }
+                        }
+                    }
+                }
+            } 
+            return dd;
+        }
+
+
+
+
+
+
 
     }
 

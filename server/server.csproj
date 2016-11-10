@@ -110,11 +110,6 @@
   <ItemGroup>
     <None Include="App.config" />
     <None Include="packages.config" />
-    <None Include="Resources\create.cshtml" />
-    <None Include="Resources\details.cshtml" />
-    <None Include="Resources\layout.cshtml" />
-    <None Include="Resources\list.cshtml" />
-    <None Include="Resources\partial.cshtml" />
   </ItemGroup>
   <ItemGroup>
     <BootstrapperPackage Include=".NETFramework,Version=v4.5">
@@ -130,6 +125,9 @@
   </ItemGroup>
   <ItemGroup>
     <Content Include="Resources\InternalServerError.html" />
+  </ItemGroup>
+  <ItemGroup>
+    <Folder Include="CRUD\" />
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <Import Project="..\packages\System.Data.SQLite.Core.1.0.103\build\net45\System.Data.SQLite.Core.targets" Condition="Exists('..\packages\System.Data.SQLite.Core.1.0.103\build\net45\System.Data.SQLite.Core.targets')" />

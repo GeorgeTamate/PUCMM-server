@@ -1,9 +1,37 @@
 <h1>List</h1>
+
+<form action="create" method="post" enctype="multipart/form-data">
+    <input type="submit" value="Create New Person" name="createbtn">
+</form>
+
+<br>
+
+<form action="details" method="post" enctype="multipart/form-data">
+    ID of Person to View Details:
+    <input type="text" name="id" value="">
+
+    <input type="submit" value="View Details" name="detailsbtn">
+</form>
+
+<br>
+
+<form action="delete" method="post" enctype="multipart/form-data">
+    ID of Person to Delete: 
+    <input type="text" name="id" value="">
+
+    <input type="submit" value="Delete" name="deletebtn">
+</form>
+
+<br><br>
+
 <ul>
     {{#each Model.List}}
-        <li>{{this.Id}} {{this.Name}} {{this.LastName}}
-            <img style='display:block; width:100px;height:100px;' id='base64image'
-                 src='data:image/jpeg;base64, {{this.ProfilePic}}' />
+        <li>Person ID: <strong>{{this.Id}}</strong>
+        <br>
+        <strong>{{this.Name}} {{this.LastName}}</strong>
+        <img style='display:block; width:100px;height:100px;' id='base64image'
+                 src='data:{{this.ProfilePic}}' />
+        <br>
 
      {{else}}
         The People List has no content.
