@@ -608,7 +608,7 @@ namespace server
             return stream;
         }
 
-        static void CreatePhotoTable(SQLiteConnection dbConn)
+        static void CreatePhotosTable(SQLiteConnection dbConn)
         {
             var tableExistsQuery = "SELECT name FROM sqlite_master WHERE type='table' AND name='photos';";
             using (SQLiteCommand cmd = new SQLiteCommand(tableExistsQuery, dbConn))
@@ -686,6 +686,38 @@ namespace server
                 }
             }
             return list;
+        }
+
+        static void CreateUsersTable(SQLiteConnection dbConn)
+        {
+            var tableExistsQuery = "SELECT name FROM sqlite_master WHERE type='table' AND name='users';";
+            using (SQLiteCommand cmd = new SQLiteCommand(tableExistsQuery, dbConn))
+            {
+                string result = (string)cmd.ExecuteScalar();
+                // If table doesn't exist then create it
+                if (string.IsNullOrEmpty(result))
+                {
+                    Console.WriteLine("Table does not exist. Creating new table...");
+                    string createTableQuery = "CREATE TABLE users (id INTEGER PRIMARY KEY AUTOINCREMENT, userid TEXT, issuedat INTEGER, expires INTEGER)";
+                    using (SQLiteCommand createTableCommand = new SQLiteCommand(createTableQuery, dbConn))
+                    {
+                        createTableCommand.ExecuteNonQuery();
+                    }
+                }
+            }
+        }
+
+        static void createUser(string userid, long issuedat, long expires)
+        {
+            using (SQLiteConnection conn = new SQLiteConnection("Data Source=testphoto.sqlite;Version=3;"))
+            {
+                conn.Open();
+
+                string sql = $"insert into users (userid, issuedat, expires) values ('{userid}', '{issuedat}', '{expires}')";
+                SQLiteCommand command = new SQLiteCommand(sql, conn);
+                command.ExecuteNonQuery();
+                Console.WriteLine("Done creating picture");
+            }
         }
 
         static int Main(string[] args)
@@ -831,7 +863,7 @@ namespace server
             using (SQLiteConnection conn = new SQLiteConnection(connString))
             {
                 conn.Open();
-                CreatePhotoTable(conn);
+                CreatePhotosTable(conn);
             }
 
             #endregion
