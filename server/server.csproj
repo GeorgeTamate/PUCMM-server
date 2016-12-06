@@ -59,6 +59,10 @@
       <HintPath>..\packages\Handlebars.Net.1.8.0\lib\portable-net45+sl5+wp8+win8\Handlebars.dll</HintPath>
       <Private>True</Private>
     </Reference>
+    <Reference Include="JWT, Version=1.3.3.0, Culture=neutral, processorArchitecture=MSIL">
+      <HintPath>..\packages\JWT.1.3.4\lib\3.5\JWT.dll</HintPath>
+      <Private>True</Private>
+    </Reference>
     <Reference Include="log4net, Version=1.2.15.0, Culture=neutral, PublicKeyToken=669e0ddf0bb1aa2a, processorArchitecture=MSIL">
       <HintPath>..\packages\log4net.2.0.5\lib\net45-full\log4net.dll</HintPath>
       <Private>True</Private>
@@ -83,6 +87,8 @@
   </ItemGroup>
   <ItemGroup>
     <Compile Include="ClientState.cs" />
+    <Compile Include="DbHelper.cs" />
+    <Compile Include="DynamicDictionary.cs" />
     <Compile Include="HttpClient.cs" />
     <Compile Include="HttpContext.cs" />
     <Compile Include="HttpCookie.cs" />
@@ -105,6 +111,7 @@
     <Compile Include="HttpUnknownRequestParser.cs" />
     <Compile Include="HttpUrlEncodedRequestParser.cs" />
     <Compile Include="HttpUtil.cs" />
+    <Compile Include="Photo.cs" />
     <Compile Include="PHttpException.cs" />
     <Compile Include="Program.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />

@@ -4,13 +4,14 @@ using System.Diagnostics;
 using System.Collections.Generic;
 using System.Linq;
 using System.Data.SQLite;
-using System.Dynamic;
 using Newtonsoft.Json;
 
 namespace server
 {
     class Program
     {
+        private static DbHelper dbHelper = new DbHelper("testphoto.sqlite");
+
         private static readonly IDictionary<string, string> Mappings = new Dictionary<string, string>(StringComparer.InvariantCultureIgnoreCase) {
 
         #region Big freaking list of mime types
@@ -608,117 +609,117 @@ namespace server
             return stream;
         }
 
-        static void CreatePhotosTable(SQLiteConnection dbConn)
-        {
-            var tableExistsQuery = "SELECT name FROM sqlite_master WHERE type='table' AND name='photos';";
-            using (SQLiteCommand cmd = new SQLiteCommand(tableExistsQuery, dbConn))
-            {
-                string result = (string)cmd.ExecuteScalar();
-                // If table doesn't exist then create it
-                if (string.IsNullOrEmpty(result))
-                {
-                    Console.WriteLine("Table does not exist. Creating new table...");
-                    string createTableQuery = "CREATE TABLE photos (id INTEGER PRIMARY KEY AUTOINCREMENT, userid TEXT, photo TEXT, description TEXT, tags TEXT)";
-                    using (SQLiteCommand createTableCommand = new SQLiteCommand(createTableQuery, dbConn))
-                    {
-                        createTableCommand.ExecuteNonQuery();
-                    }
-                }
-            }
-        }
+        //static void CreatePhotosTable(SQLiteConnection dbConn)
+        //{
+        //    var tableExistsQuery = "SELECT name FROM sqlite_master WHERE type='table' AND name='photos';";
+        //    using (SQLiteCommand cmd = new SQLiteCommand(tableExistsQuery, dbConn))
+        //    {
+        //        string result = (string)cmd.ExecuteScalar();
+        //        // If table doesn't exist then create it
+        //        if (string.IsNullOrEmpty(result))
+        //        {
+        //            Console.WriteLine("Table does not exist. Creating new table...");
+        //            string createTableQuery = "CREATE TABLE photos (id INTEGER PRIMARY KEY AUTOINCREMENT, userid TEXT, photo TEXT, description TEXT, tags TEXT)";
+        //            using (SQLiteCommand createTableCommand = new SQLiteCommand(createTableQuery, dbConn))
+        //            {
+        //                createTableCommand.ExecuteNonQuery();
+        //            }
+        //        }
+        //    }
+        //}
 
-        static void createPicture(string userid, string img64, string desc, string tags)
-        {
-            using (SQLiteConnection conn = new SQLiteConnection("Data Source=testphoto.sqlite;Version=3;"))
-            {
-                conn.Open();
+        //static void createPicture(string userid, string img64, string desc, string tags)
+        //{
+        //    using (SQLiteConnection conn = new SQLiteConnection("Data Source=testphoto.sqlite;Version=3;"))
+        //    {
+        //        conn.Open();
 
-                string sql = $"insert into photos (userid, photo, description, tags) values ('{userid}', '{img64}', '{desc}', '{tags}')";
-                SQLiteCommand command = new SQLiteCommand(sql, conn);
-                command.ExecuteNonQuery();
-                Console.WriteLine("Done creating picture");
-            }
-        }
+        //        string sql = $"insert into photos (userid, photo, description, tags) values ('{userid}', '{img64}', '{desc}', '{tags}')";
+        //        SQLiteCommand command = new SQLiteCommand(sql, conn);
+        //        command.ExecuteNonQuery();
+        //        Console.WriteLine("Done creating picture");
+        //    }
+        //}
 
-        static List<string> getPictures(string userid)
-        {
-            List<string> list = new List<string>();
-            using (SQLiteConnection conn = new SQLiteConnection("Data Source=testphoto.sqlite;Version=3;"))
-            {
-                conn.Open();
-                string sql = $"select * from photos where userid='{userid}'";
-                using (SQLiteCommand command = new SQLiteCommand(sql, conn))
-                {
-                    using (SQLiteDataReader reader = command.ExecuteReader())
-                    {
-                        while (reader.Read())
-                        {
-                            dynamic dd = new DynamicDictionary();
-                            dd.photo = reader["photo"];
-                            list.Add(dd);
-                            Console.WriteLine("db");
-                        }
-                    }
-                }
-            }
-            return list;
-        }
+        //static List<string> getPictures(string userid)
+        //{
+        //    List<string> list = new List<string>();
+        //    using (SQLiteConnection conn = new SQLiteConnection("Data Source=testphoto.sqlite;Version=3;"))
+        //    {
+        //        conn.Open();
+        //        string sql = $"select * from photos where userid='{userid}'";
+        //        using (SQLiteCommand command = new SQLiteCommand(sql, conn))
+        //        {
+        //            using (SQLiteDataReader reader = command.ExecuteReader())
+        //            {
+        //                while (reader.Read())
+        //                {
+        //                    dynamic dd = new DynamicDictionary();
+        //                    dd.photo = reader["photo"];
+        //                    list.Add(dd);
+        //                    Console.WriteLine("db");
+        //                }
+        //            }
+        //        }
+        //    }
+        //    return list;
+        //}
 
-        static List<string> getPictures()
-        {
-            List<string> list = new List<string>();
-            using (SQLiteConnection conn = new SQLiteConnection("Data Source=testphoto.sqlite;Version=3;"))
-            {
-                conn.Open();
-                string sql = $"select * from photos";
-                using (SQLiteCommand command = new SQLiteCommand(sql, conn))
-                {
-                    using (SQLiteDataReader reader = command.ExecuteReader())
-                    {
-                        while (reader.Read())
-                        {
-                            dynamic dd = new DynamicDictionary();
-                            dd.photo = reader["photo"];
-                            list.Add(dd.photo);
-                            Console.WriteLine("db to list");
-                        }
-                    }
-                }
-            }
-            return list;
-        }
+        //static List<string> getPictures()
+        //{
+        //    List<string> list = new List<string>();
+        //    using (SQLiteConnection conn = new SQLiteConnection("Data Source=testphoto.sqlite;Version=3;"))
+        //    {
+        //        conn.Open();
+        //        string sql = $"select * from photos";
+        //        using (SQLiteCommand command = new SQLiteCommand(sql, conn))
+        //        {
+        //            using (SQLiteDataReader reader = command.ExecuteReader())
+        //            {
+        //                while (reader.Read())
+        //                {
+        //                    dynamic dd = new DynamicDictionary();
+        //                    dd.photo = reader["photo"];
+        //                    list.Add(dd.photo);
+        //                    Console.WriteLine("db to list");
+        //                }
+        //            }
+        //        }
+        //    }
+        //    return list;
+        //}
 
-        static void CreateUsersTable(SQLiteConnection dbConn)
-        {
-            var tableExistsQuery = "SELECT name FROM sqlite_master WHERE type='table' AND name='users';";
-            using (SQLiteCommand cmd = new SQLiteCommand(tableExistsQuery, dbConn))
-            {
-                string result = (string)cmd.ExecuteScalar();
-                // If table doesn't exist then create it
-                if (string.IsNullOrEmpty(result))
-                {
-                    Console.WriteLine("Table does not exist. Creating new table...");
-                    string createTableQuery = "CREATE TABLE users (id INTEGER PRIMARY KEY AUTOINCREMENT, userid TEXT, issuedat INTEGER, expires INTEGER)";
-                    using (SQLiteCommand createTableCommand = new SQLiteCommand(createTableQuery, dbConn))
-                    {
-                        createTableCommand.ExecuteNonQuery();
-                    }
-                }
-            }
-        }
+        //static void CreateUsersTable(SQLiteConnection dbConn)
+        //{
+        //    var tableExistsQuery = "SELECT name FROM sqlite_master WHERE type='table' AND name='users';";
+        //    using (SQLiteCommand cmd = new SQLiteCommand(tableExistsQuery, dbConn))
+        //    {
+        //        string result = (string)cmd.ExecuteScalar();
+        //        // If table doesn't exist then create it
+        //        if (string.IsNullOrEmpty(result))
+        //        {
+        //            Console.WriteLine("Table does not exist. Creating new table...");
+        //            string createTableQuery = "CREATE TABLE users (id INTEGER PRIMARY KEY AUTOINCREMENT, userid TEXT, issuedat INTEGER, expires INTEGER)";
+        //            using (SQLiteCommand createTableCommand = new SQLiteCommand(createTableQuery, dbConn))
+        //            {
+        //                createTableCommand.ExecuteNonQuery();
+        //            }
+        //        }
+        //    }
+        //}
 
-        static void createUser(string userid, long issuedat, long expires)
-        {
-            using (SQLiteConnection conn = new SQLiteConnection("Data Source=testphoto.sqlite;Version=3;"))
-            {
-                conn.Open();
+        //static void createUser(string userid, long issuedat, long expires)
+        //{
+        //    using (SQLiteConnection conn = new SQLiteConnection("Data Source=testphoto.sqlite;Version=3;"))
+        //    {
+        //        conn.Open();
 
-                string sql = $"insert into users (userid, issuedat, expires) values ('{userid}', '{issuedat}', '{expires}')";
-                SQLiteCommand command = new SQLiteCommand(sql, conn);
-                command.ExecuteNonQuery();
-                Console.WriteLine("Done creating picture");
-            }
-        }
+        //        string sql = $"insert into users (userid, issuedat, expires) values ('{userid}', '{issuedat}', '{expires}')";
+        //        SQLiteCommand command = new SQLiteCommand(sql, conn);
+        //        command.ExecuteNonQuery();
+        //        Console.WriteLine("Done creating picture");
+        //    }
+        //}
 
         static int Main(string[] args)
         {
@@ -820,14 +821,14 @@ namespace server
 
                 if (e.Request.HttpMethod.ToLower() == "post" && e.Request.Path == "/create")
                 {
-                    createPicture(userid, photo, desc, tags);
+                    dbHelper.CreatePicture(userid, photo, desc, tags);
                 }
 
                 if (e.Request.HttpMethod.ToLower() == "get" && e.Request.Path == "/pictures")
                 {
-                    List<string> list = getPictures();
-                    string[][] newKeys = list.Select(x => new string[] { x }).ToArray();
-                    string json = JsonConvert.SerializeObject(newKeys);
+                    var list = dbHelper.GetPicturess();
+                    string json = JsonConvert.SerializeObject(list);
+
                     Console.WriteLine("Process Done");
 
                     using (var stream = GenerateStreamFromString(json))
@@ -848,23 +849,8 @@ namespace server
 
 
             #region Database Init
-
-            string dbFile = "testphoto.sqlite";
-            dbFile = Directory.GetCurrentDirectory() + @"\" + dbFile;
-
-            if (!File.Exists(dbFile))
-            {
-                Console.WriteLine("Database does not exist. Creating new database...");
-                SQLiteConnection.CreateFile(dbFile);
-            }
-
-            string connString = $"Data Source={dbFile};Version=3;";
-
-            using (SQLiteConnection conn = new SQLiteConnection(connString))
-            {
-                conn.Open();
-                CreatePhotosTable(conn);
-            }
+            
+            dbHelper.CreateDatabase();
 
             #endregion
 
@@ -895,50 +881,5 @@ namespace server
             return 0;
         }
     }
-
-    public class DynamicDictionary : System.Dynamic.DynamicObject
-    {
-        // The inner dictionary.
-        Dictionary<string, object> dictionary
-            = new Dictionary<string, object>();
-
-        // This property returns the number of elements
-        // in the inner dictionary.
-        public int Count
-        {
-            get
-            {
-                return dictionary.Count;
-            }
-        }
-
-        // If you try to get a value of a property 
-        // not defined in the class, this method is called.
-        public override bool TryGetMember(
-            GetMemberBinder binder, out object result)
-        {
-            // Converting the property name to lowercase
-            // so that property names become case-insensitive.
-            string name = binder.Name.ToLower();
-
-            // If the property name is found in a dictionary,
-            // set the result parameter to the property value and return true.
-            // Otherwise, return false.
-            return dictionary.TryGetValue(name, out result);
-        }
-
-        // If you try to set a value of a property that is
-        // not defined in the class, this method is called.
-        public override bool TrySetMember(
-            SetMemberBinder binder, object value)
-        {
-            // Converting the property name to lowercase
-            // so that property names become case-insensitive.
-            dictionary[binder.Name.ToLower()] = value;
-
-            // You can always add a value to a dictionary,
-            // so this method always returns true.
-            return true;
-        }
-    }
+    
 }
