@@ -2,9 +2,6 @@
 using System.Collections.Generic;
 using System.Data.SQLite;
 using System.IO;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 
 namespace server
 {
@@ -17,7 +14,7 @@ namespace server
         // "testphoto.sqlite"
         public DbHelper(string databaseFile)
         {
-            _databaseFile = _databaseFilePath + @"\" + databaseFile;
+            _databaseFile = _databaseFilePath + @"\..\..\..\" + databaseFile;
             _connString = $"Data Source={databaseFile};Version=3;";
         }
 

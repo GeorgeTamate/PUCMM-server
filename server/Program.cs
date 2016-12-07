@@ -2,9 +2,13 @@
 using System.IO;
 using System.Diagnostics;
 using System.Collections.Generic;
-using System.Linq;
-using System.Data.SQLite;
 using Newtonsoft.Json;
+using System.Threading;
+using MicroService.Azure.Concrete;
+using MicroService.Threadpool;
+using MicroService.Azure;
+using System.Threading.Tasks;
+using Microsoft.WindowsAzure.Storage.Queue;
 
 namespace server
 {
@@ -721,6 +725,79 @@ namespace server
         //    }
         //}
 
+        private static CancellationTokenSource _cts;
+        private static AzureStorageManager _azureStorageManager;
+        private static WorkerManager _workerManager;
+
+        public static object CloudConfigurationManager { get; private set; }
+
+        static void Initialize()
+        {
+            var settings = new CloudSettings
+            {
+                //AccountName = ConfigurationManager.AppSettings["AccountName"],
+                //AccountKey = ConfigurationManager.AppSettings["AccountKey"]
+                AccountName = "photofind",
+                AccountKey = "roeESiicfnfPh9UhTNU9fSGLQZPYSMyVebh28poOjChhqMn+gbnLO+dGpPhDxJfFg2wv7ajwjGBSNlKkM2p2ug=="
+            };
+
+            _azureStorageManager = new AzureStorageManager(settings);
+            _workerManager = new WorkerManager();
+            _cts = new CancellationTokenSource();
+        }
+
+        static void Run()
+        {
+            // 
+            Initialize();
+
+            var task = new Task(ProcessQueue, _cts.Token);
+
+            Console.WriteLine("Press Escape to quit...");
+
+            task.Start();
+
+            while (!task.IsCompleted)
+            {
+                var keyInput = Console.ReadKey(true);
+
+                if (keyInput.Key == ConsoleKey.Escape)
+                {
+                    Console.WriteLine("Escape was pressed, cancelling...");
+                    Stop();
+                }
+            }
+        }
+
+        private static void Stop()
+        {
+            // Stop the working jobs
+            _workerManager.Running = false;
+
+            foreach (Worker worker in _workerManager.Workers)
+            {
+                worker.Thread.Abort();
+            }
+
+            //
+            _cts.Cancel();
+        }
+
+        static async void ProcessQueue()
+        {
+            while (!_cts.IsCancellationRequested)
+            {
+                // Async dequeue the message
+                CloudQueueMessage retrievedMessage = await _azureStorageManager.PhotoAnalyzerQueue.GetMessageAsync();
+
+                if (retrievedMessage != null)
+                {
+                    // Create a new job
+                    _workerManager.Queue.Add(AnalyzerJobFactory.Create(_azureStorageManager, ref retrievedMessage));
+                }
+            }
+        }
+
         static int Main(string[] args)
         {
 
@@ -819,6 +896,20 @@ namespace server
                     Console.WriteLine("Tags: " + tags);
                 Console.WriteLine();
 
+                if (e.Request.HttpMethod.ToLower() == "post" && e.Request.Path == "/vision")
+                {
+                    Console.WriteLine("V I S I O N");
+                    var wrapper = new
+                    {
+                        PhotoId = 1234,
+                        UserId = "panita"
+                    };
+
+                    _azureStorageManager.PhotoAnalyzerQueue.AddMessage(
+                        new CloudQueueMessage(JsonConvert.SerializeObject(wrapper))
+                        );
+                }
+
                 if (e.Request.HttpMethod.ToLower() == "post" && e.Request.Path == "/create")
                 {
                     dbHelper.CreatePicture(userid, photo, desc, tags);
@@ -873,7 +964,11 @@ namespace server
             //};
             #endregion
 
-            Console.ReadKey();
+            //Console.ReadKey();
+            
+
+            Run();
+
 
             httpServer.Stop();
             stopWatch.Stop();
