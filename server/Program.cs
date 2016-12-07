@@ -965,7 +965,8 @@ namespace server
             #endregion
 
             //Console.ReadKey();
-            
+            string guid = Guid.NewGuid().ToString();
+            Console.WriteLine(guid);
 
             Run();
 

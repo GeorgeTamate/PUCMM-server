@@ -10,6 +10,7 @@ namespace server
         private readonly string _databaseFile;
         private readonly string _databaseFilePath = Directory.GetCurrentDirectory();
         private readonly string _connString;
+        private object _mutex = new object();
 
         // "testphoto.sqlite"
         public DbHelper(string databaseFile)
@@ -54,34 +55,40 @@ namespace server
 
         public void CreatePicture(string userid, string img64, string desc, string tags)
         {
-            using (SQLiteConnection conn = new SQLiteConnection(_connString))
+            lock (_mutex)
             {
-                conn.Open();
-
-                string sql = $"insert into photos (userid, photo, description, tags) values ('{userid}', '{img64}', '{desc}', '{tags}')";
-                SQLiteCommand command = new SQLiteCommand(sql, conn);
-                command.ExecuteNonQuery();
-                Console.WriteLine("Done creating picture");
+                using (SQLiteConnection conn = new SQLiteConnection(_connString))
+                {
+                    conn.Open();
+                    string guid = Guid.NewGuid().ToString();
+                    string sql = $"insert into photos (userid, photo, description, tags) values ('{userid}', '{img64}', '{desc}', '{tags}')";
+                    SQLiteCommand command = new SQLiteCommand(sql, conn);
+                    command.ExecuteNonQuery();
+                    Console.WriteLine("Done creating picture");
+                }
             }
         }
 
         public List<string> GetPictures(string userid)
         {
             List<string> list = new List<string>();
-            using (SQLiteConnection conn = new SQLiteConnection(_connString))
+            lock (_mutex)
             {
-                conn.Open();
-                string sql = $"select * from photos where userid='{userid}'";
-                using (SQLiteCommand command = new SQLiteCommand(sql, conn))
+                using (SQLiteConnection conn = new SQLiteConnection(_connString))
                 {
-                    using (SQLiteDataReader reader = command.ExecuteReader())
+                    conn.Open();
+                    string sql = $"select * from photos where userid='{userid}'";
+                    using (SQLiteCommand command = new SQLiteCommand(sql, conn))
                     {
-                        while (reader.Read())
+                        using (SQLiteDataReader reader = command.ExecuteReader())
                         {
-                            dynamic dd = new DynamicDictionary();
-                            dd.photo = reader["photo"];
-                            list.Add(dd);
-                            Console.WriteLine("db");
+                            while (reader.Read())
+                            {
+                                dynamic dd = new DynamicDictionary();
+                                dd.photo = reader["photo"];
+                                list.Add(dd);
+                                Console.WriteLine("db");
+                            }
                         }
                     }
                 }
@@ -92,20 +99,23 @@ namespace server
         public List<string> GetPictures()
         {
             List<string> list = new List<string>();
-            using (SQLiteConnection conn = new SQLiteConnection(_connString))
+            lock (_mutex)
             {
-                conn.Open();
-                string sql = $"select * from photos";
-                using (SQLiteCommand command = new SQLiteCommand(sql, conn))
+                using (SQLiteConnection conn = new SQLiteConnection(_connString))
                 {
-                    using (SQLiteDataReader reader = command.ExecuteReader())
+                    conn.Open();
+                    string sql = $"select * from photos";
+                    using (SQLiteCommand command = new SQLiteCommand(sql, conn))
                     {
-                        while (reader.Read())
+                        using (SQLiteDataReader reader = command.ExecuteReader())
                         {
-                            dynamic dd = new DynamicDictionary();
-                            dd.photo = reader["photo"];
-                            list.Add(dd.photo);
-                            Console.WriteLine("db to list");
+                            while (reader.Read())
+                            {
+                                dynamic dd = new DynamicDictionary();
+                                dd.photo = reader["photo"];
+                                list.Add(dd.photo);
+                                Console.WriteLine("db to list");
+                            }
                         }
                     }
                 }
@@ -116,37 +126,42 @@ namespace server
         public List<object> GetPicturess()
         {
             List<object> list = new List<object>();
-            using (SQLiteConnection conn = new SQLiteConnection(_connString))
+            lock (_mutex)
             {
-                conn.Open();
-                string sql = $"select * from photos";
-                using (SQLiteCommand command = new SQLiteCommand(sql, conn))
+                using (SQLiteConnection conn = new SQLiteConnection(_connString))
                 {
-                    using (SQLiteDataReader reader = command.ExecuteReader())
+                    conn.Open();
+                    string sql = $"select * from photos";
+                    using (SQLiteCommand command = new SQLiteCommand(sql, conn))
                     {
-                        while (reader.Read())
+                        using (SQLiteDataReader reader = command.ExecuteReader())
                         {
-                            dynamic dd = new DynamicDictionary();
-                            dd.Id = reader["id"];
-                            dd.UserId = reader["userid"];
-                            dd.Photo = reader["photo"];
-                            dd.Description = reader["description"];
-                            dd.Tags = reader["tags"];
+                            while (reader.Read())
+                            {
+                                dynamic dd = new DynamicDictionary();
+                                dd.Id = reader["id"];
+                                dd.UserId = reader["userid"];
+                                dd.Photo = reader["photo"];
+                                dd.Description = reader["description"];
+                                dd.Tags = reader["tags"];
 
-                            var model = new {
-                                Id = reader["id"],
-                                UserId = reader["userid"],
-                                Photo = reader["photo"],
-                                Description = reader["description"],
-                                Tags = reader["tags"]
-                            };
+                                var model = new
+                                {
+                                    Id = reader["id"],
+                                    UserId = reader["userid"],
+                                    Photo = reader["photo"],
+                                    Description = reader["description"],
+                                    Tags = reader["tags"]
+                                };
 
-                            list.Add(model);
-                            Console.WriteLine("db to list");
+                                list.Add(model);
+                                Console.WriteLine("db to list");
+                            }
                         }
                     }
                 }
             }
+            
             return list;
         }
 
@@ -171,15 +186,18 @@ namespace server
 
         public void CreateUser(string userid, long issuedat, long expires)
         {
-            using (SQLiteConnection conn = new SQLiteConnection(_connString))
+            lock (_mutex)
             {
-                conn.Open();
+                using (SQLiteConnection conn = new SQLiteConnection(_connString))
+                {
+                    conn.Open();
 
-                string sql = $"insert into users (userid, issuedat, expires) values ('{userid}', '{issuedat}', '{expires}')";
-                SQLiteCommand command = new SQLiteCommand(sql, conn);
-                command.ExecuteNonQuery();
-                Console.WriteLine("Done creating picture");
-            }
+                    string sql = $"insert into users (userid, issuedat, expires) values ('{userid}', '{issuedat}', '{expires}')";
+                    SQLiteCommand command = new SQLiteCommand(sql, conn);
+                    command.ExecuteNonQuery();
+                    Console.WriteLine("Done creating picture");
+                }
+            }  
         }
     }
 }
