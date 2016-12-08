@@ -31,6 +31,7 @@ namespace server
             {
                 conn.Open();
                 CreatePhotosTable(conn);
+                CreateUsersTable(conn);
             }
         }
 
@@ -44,7 +45,7 @@ namespace server
                 if (string.IsNullOrEmpty(result))
                 {
                     Console.WriteLine("Table does not exist. Creating new table...");
-                    string createTableQuery = "CREATE TABLE photos (id INTEGER PRIMARY KEY AUTOINCREMENT, userid TEXT, photo TEXT, description TEXT, tags TEXT)";
+                    string createTableQuery = "CREATE TABLE photos (id INTEGER PRIMARY KEY AUTOINCREMENT, userid TEXT, photo TEXT, photoid TEXT, description TEXT, tags TEXT)";
                     using (SQLiteCommand createTableCommand = new SQLiteCommand(createTableQuery, dbConn))
                     {
                         createTableCommand.ExecuteNonQuery();
@@ -53,20 +54,27 @@ namespace server
             }
         }
 
-        public void CreatePicture(string userid, string img64, string desc, string tags)
+        public dynamic CreatePicture(string userid, string img64, string desc, string tags)
         {
+            dynamic model;
             lock (_mutex)
             {
                 using (SQLiteConnection conn = new SQLiteConnection(_connString))
                 {
                     conn.Open();
                     string guid = Guid.NewGuid().ToString();
-                    string sql = $"insert into photos (userid, photo, description, tags) values ('{userid}', '{img64}', '{desc}', '{tags}')";
+                    string sql = $"insert into photos (userid, photo, photoid) values ('{userid}', '{img64}', '{guid}')";
                     SQLiteCommand command = new SQLiteCommand(sql, conn);
                     command.ExecuteNonQuery();
                     Console.WriteLine("Done creating picture");
+                    model = new
+                    {
+                        PhotoId = guid,
+                        UserId = userid
+                    };
                 }
             }
+            return model;
         }
 
         public List<string> GetPictures(string userid)

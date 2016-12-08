@@ -14,7 +14,7 @@ namespace server
 {
     class Program
     {
-        private static DbHelper dbHelper = new DbHelper("testphoto.sqlite");
+        private static DbHelper dbHelper = new DbHelper("testphoto1.sqlite");
 
         private static readonly IDictionary<string, string> Mappings = new Dictionary<string, string>(StringComparer.InvariantCultureIgnoreCase) {
 
@@ -909,13 +909,18 @@ namespace server
                         new CloudQueueMessage(JsonConvert.SerializeObject(wrapper))
                         );
                 }
-
-                if (e.Request.HttpMethod.ToLower() == "post" && e.Request.Path == "/create")
+                else if (e.Request.HttpMethod.ToLower() == "post" && e.Request.Path == "/create")
                 {
-                    dbHelper.CreatePicture(userid, photo, desc, tags);
-                }
+                    string mypath = @"C:\Users\GeorgeTamate\Desktop\guitar.jpg";
+                    string base64string = Convert.ToBase64String(File.ReadAllBytes(mypath));
 
-                if (e.Request.HttpMethod.ToLower() == "get" && e.Request.Path == "/pictures")
+                    dynamic photoid = dbHelper.CreatePicture(userid, photo, desc, tags);
+
+                    _azureStorageManager.PhotoAnalyzerQueue.AddMessage(
+                        new CloudQueueMessage(JsonConvert.SerializeObject(photoid))
+                        );
+                }
+                else if (e.Request.HttpMethod.ToLower() == "get" && e.Request.Path == "/pictures")
                 {
                     var list = dbHelper.GetPicturess();
                     string json = JsonConvert.SerializeObject(list);
@@ -933,6 +938,27 @@ namespace server
                             e.Response.OutputStream.Write(buffer, 0, read);
                         }
                     }
+                }
+                else
+                {
+                    #region 404 NOT FOUND
+                    e.Response.Status = "404 Not Found";
+                    //TODO: RR: Add code to load 404 file.
+                    string file404 = @"..\..\Resources\" + "404.html";
+
+                    using (
+                        var stream = File.Open(file404, FileMode.Open))
+                    {
+                        e.Response.ContentType = GetMimeType(Path.GetExtension(file404));
+                        byte[] buffer = new byte[4096];
+                        int read;
+
+                        while ((read = stream.Read(buffer, 0, buffer.Length)) != 0)
+                        {
+                            e.Response.OutputStream.Write(buffer, 0, read);
+                        }
+                    }
+                    #endregion
                 }
             };
 
@@ -965,8 +991,6 @@ namespace server
             #endregion
 
             //Console.ReadKey();
-            string guid = Guid.NewGuid().ToString();
-            Console.WriteLine(guid);
 
             Run();
 

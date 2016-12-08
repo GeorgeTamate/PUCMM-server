@@ -6,6 +6,7 @@ using System.Threading;
 using Microsoft.ProjectOxford.Vision;
 using Microsoft.ProjectOxford.Vision.Contract;
 using MicroService.Helpers;
+using Newtonsoft.Json;
 
 namespace MicroService.Threadpool
 {
@@ -70,12 +71,14 @@ namespace MicroService.Threadpool
                     // start
                     worker.Start = SystemTime.Now();
                     try
-                    {                        
+                    {
                         // TODO: RR: Retrieve the image from the db
-                        string path = @"C:\Users\GeorgeTamate\Desktop\peach.png";
+                        PhotoDbHelper db = new PhotoDbHelper("testphoto1.sqlite");
+                        string s = db.GetImageByPhotoId(worker.AnalyzerJob.PhotoId);
+                        string path = @"C:\Users\GeorgeTamate\Desktop\apples.jpg";
                         string base64string = Convert.ToBase64String(File.ReadAllBytes(path));
                         // Transform data to byte array
-                        Byte[] bytes = Convert.FromBase64String(base64string);
+                        Byte[] bytes = Convert.FromBase64String(s);
                         // Extract data from image using the Vision API
                         // TODO: RR: Add your subscription Id
                         // TODO: RR: Abstract this to its own class/function
@@ -100,7 +103,9 @@ namespace MicroService.Threadpool
                             // TODO: RR: Manipulate & store the retrieved data.
                             var results = analysisResult.Tags.Select(tag => tag.Name).ToList();
                             Console.WriteLine("==== RESULTS ====");
+                            string tags = string.Join(",", results);
                             Console.WriteLine(string.Join(",", results));
+                            db.InsertTags(worker.AnalyzerJob.PhotoId, "Description", tags);
                             Console.WriteLine(Environment.NewLine);
                         }
 
@@ -114,7 +119,6 @@ namespace MicroService.Threadpool
                         worker.Status = JobStatus.Success;
                         worker.Finish = SystemTime.Now();
                         ArchiveWorker(worker);
-                        Console.WriteLine("checkpoint 10");
                     }
                     catch (ThreadAbortException)
                     {

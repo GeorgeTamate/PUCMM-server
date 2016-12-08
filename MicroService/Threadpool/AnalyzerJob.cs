@@ -6,7 +6,7 @@ namespace MicroService.Threadpool
 {
     public class AnalyzerJob
     {
-        public int PhotoId { get; set; }
+        public string PhotoId { get; set; }
         public string UserId { get; set; }
         public AzureStorageManager StorageManager { get; set; }
         public CloudQueueMessage Message { get; set; }

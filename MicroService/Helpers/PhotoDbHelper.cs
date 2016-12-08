@@ -19,11 +19,11 @@ namespace MicroService.Helpers
             _connString = $"Data Source={databaseFile};Version=3;";
         }
 
-        public object GetImageByPhotoId(string photoId)
+        public string GetImageByPhotoId(string photoId)
         {
-            object o = new object();
+            string s = "";
 
-            lock(_mutex)
+            lock (_mutex)
             {
                 using (SQLiteConnection conn = new SQLiteConnection(_connString))
                 {
@@ -33,20 +33,22 @@ namespace MicroService.Helpers
                     {
                         using (SQLiteDataReader reader = command.ExecuteReader())
                         {
+                            int i = 0;
                             while (reader.Read())
                             {
-                                o = reader["photo"];
-                                Console.WriteLine("64 from db");
+                                s = reader.GetString(2);
+                                Console.WriteLine(++i);
                             }
                         }
                     }
                 }
-                return o;
-            }
-        }
-            
 
-        public void insertTags(string photoId, string desc, string tags)
+            }
+            return s;
+        }
+
+
+        public void InsertTags(string photoId, string desc, string tags)
         {
             lock (_mutex)
             {
